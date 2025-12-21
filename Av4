@@ -147,7 +147,7 @@ menuCorner.Parent = profileMenu
 local profiles = {
 	{name = "SMOOTH", desc = "Balanced", power = 15000, damping = 300, color = Color3.fromRGB(80, 200, 120)},
 	{name = "SNAP", desc = "Instant", power = 25000, damping = 150, color = Color3.fromRGB(255, 140, 60)},
-	{name = "BUTTER", desc = "Ultra Smooth", power = 15000, damping = 850, color = Color3.fromRGB(100, 180, 255)}
+	{name = "BUTTER", desc = "Ultra Smooth", power = 25000, damping = 850, color = Color3.fromRGB(100, 180, 255)}
 }
 
 local currentProfile = 1
