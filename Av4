@@ -147,7 +147,7 @@ menuCorner.Parent = profileMenu
 local profiles = {
 	{name = "SMOOTH", desc = "Balanced", power = 15000, damping = 300, color = Color3.fromRGB(80, 200, 120)},
 	{name = "SNAP", desc = "Instant", power = 25000, damping = 150, color = Color3.fromRGB(255, 140, 60)},
-	{name = "BUTTER", desc = "Ultra Smooth", power = 6000, damping = 1500, color = Color3.fromRGB(100, 180, 255)}
+	{name = "BUTTER", desc = "Ultra Smooth", power = 10000, damping = 850, color = Color3.fromRGB(100, 180, 255)}
 }
 
 local currentProfile = 1
@@ -539,6 +539,6 @@ RunService.RenderStepped:Connect(function()
 end)
 
 print("Mobile Lock System [3 PROFILES] loaded!")
-print("✅ SMOOTH (15000/300) | SNAP (25000/150) | BUTTER (6000/1500)")
-print("✅ BUTTER: MAXIMUM smoothness - ultra cinematic!")
+print("✅ SMOOTH (15000/300) | SNAP (25000/150) | BUTTER (10000/850)")
+print("✅ BUTTER: Smooth + Fast tracking - perfect balance!")
 print("💡 Click [+] to switch | Drag to move")
