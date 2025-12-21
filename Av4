@@ -199,8 +199,8 @@ for i, profile in ipairs(profiles) do
 	indicator.Position = UDim2.new(0, 3, 0, 3)
 	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
 	indicator.BorderSizePixel = 0
-	indicator.Visible = (i == 1) -- SMOOTH profile selected by default
-	indicator.ZIndex = 7 -- Above button
+	indicator.Visible = (i == 1) -- SMOOTH profile selected by default (first profile)
+	indicator.ZIndex = 7
 	indicator.Parent = btn
 	
 	local indCorner = Instance.new("UICorner")
