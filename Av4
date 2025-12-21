@@ -212,13 +212,8 @@ for i, profile in ipairs(profiles) do
 	-- Profile selection
 	btn.Activated:Connect(function()
 		currentProfile = i
-		isAdaptiveMode = profile.adaptive
-		
-		if not isAdaptiveMode then
-			-- Fixed profile mode
-			GYRO_POWER = profile.power
-			GYRO_DAMPING = profile.damping
-		end
+		GYRO_POWER = profile.power
+		GYRO_DAMPING = profile.damping
 		
 		-- Update indicators
 		for j, data in ipairs(profileButtons) do
