@@ -121,20 +121,17 @@ profileBtn.TextColor3 = Color3.new(1, 1, 1)
 profileBtn.Font = Enum.Font.GothamBold
 profileBtn.TextSize = 20
 profileBtn.Active = true
-profileBtn.ZIndex = 10 -- Higher than menu
+profileBtn.ZIndex = 10
 profileBtn.Parent = charLockBtn
 
 local profileCorner = Instance.new("UICorner")
 profileCorner.CornerRadius = UDim.new(0.5, 0)
 profileCorner.Parent = profileBtn
 
--- Make sure corner has proper ZIndex too
-profileBtn.ZIndex = 10
-
 -- Profile Menu Container
 local profileMenu = Instance.new("Frame")
-profileMenu.Size = UDim2.new(0, 160, 0, 0) -- Start at 0 height for animation
-profileMenu.Position = UDim2.new(0, -30, 0, 40) -- Position BELOW the + button
+profileMenu.Size = UDim2.new(0, 160, 0, 0)
+profileMenu.Position = UDim2.new(0, -30, 0, 40)
 profileMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 profileMenu.BorderSizePixel = 0
 profileMenu.ClipsDescendants = true
@@ -146,36 +143,20 @@ local menuCorner = Instance.new("UICorner")
 menuCorner.CornerRadius = UDim.new(0, 8)
 menuCorner.Parent = profileMenu
 
--- Profile options
+-- ONLY 3 PROFILES - NO ADAPTIVE!
 local profiles = {
-	{name = "SMOOTH", desc = "Balanced", power = 15000, damping = 300, color = Color3.fromRGB(80, 200, 120), adaptive = false},
-	{name = "SNAP", desc = "Instant", power = 25000, damping = 150, color = Color3.fromRGB(255, 140, 60), adaptive = false},
-	{name = "BUTTER", desc = "Ultra Smooth", power = 12000, damping = 400, color = Color3.fromRGB(100, 180, 255), adaptive = false},
-	{name = "ADAPTIVE", desc = "Ping Based", power = 15000, damping = 300, color = Color3.fromRGB(255, 100, 255), adaptive = true}
+	{name = "SMOOTH", desc = "Balanced", power = 15000, damping = 300, color = Color3.fromRGB(80, 200, 120)},
+	{name = "SNAP", desc = "Instant", power = 25000, damping = 150, color = Color3.fromRGB(255, 140, 60)},
+	{name = "BUTTER", desc = "Ultra Smooth", power = 6000, damping = 1500, color = Color3.fromRGB(100, 180, 255)}
 }
 
-local currentProfile = 1  -- Default to SMOOTH profile (first one)
+local currentProfile = 1
 local profileButtons = {}
-local isAdaptiveMode = false  -- Start with fixed profile
 
--- Ping monitoring for adaptive mode
-local currentPing = 0
-local Stats = game:GetService("Stats")
-
-spawn(function()
-	while true do
-		wait(0.5)
-		-- Get network ping
-		local success, ping = pcall(function()
-			return Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
-		end)
-		if success and ping then
-			currentPing = ping
-		end
-	end
-end)
-
-for i, profile in ipairs(profiles) do
+-- Create EXACTLY 3 profile buttons
+for i = 1, 3 do
+	local profile = profiles[i]
+	
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, -10, 0, 35)
 	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 40)
@@ -186,7 +167,7 @@ for i, profile in ipairs(profiles) do
 	btn.TextSize = 13
 	btn.TextColor3 = Color3.new(1, 1, 1)
 	btn.Text = profile.name .. " · " .. profile.desc
-	btn.ZIndex = 6 -- Above menu, below profile button
+	btn.ZIndex = 6
 	btn.Parent = profileMenu
 	
 	local btnCorner = Instance.new("UICorner")
@@ -199,7 +180,7 @@ for i, profile in ipairs(profiles) do
 	indicator.Position = UDim2.new(0, 3, 0, 3)
 	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
 	indicator.BorderSizePixel = 0
-	indicator.Visible = (i == 1) -- SMOOTH profile selected by default (first profile)
+	indicator.Visible = (i == 1)
 	indicator.ZIndex = 7
 	indicator.Parent = btn
 	
@@ -216,9 +197,9 @@ for i, profile in ipairs(profiles) do
 		GYRO_DAMPING = profile.damping
 		
 		-- Update indicators
-		for j, data in ipairs(profileButtons) do
+		for j = 1, 3 do
+			local data = profileButtons[j]
 			data.indicator.Visible = (j == i)
-			-- Smooth color transition
 			game:GetService("TweenService"):Create(data.button, TweenInfo.new(0.2), {
 				BackgroundTransparency = (j == i) and 0.2 or 0.5
 			}):Play()
@@ -250,16 +231,14 @@ profileBtn.Activated:Connect(function()
 	
 	if menuOpen then
 		profileMenu.Visible = true
-		-- Smooth expand animation (4 profiles now)
 		TweenService:Create(profileMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 165)  -- Increased height for 4th profile
+			Size = UDim2.new(0, 160, 0, 125)
 		}):Play()
 		TweenService:Create(profileBtn, TweenInfo.new(0.2), {
 			Rotation = 45,
 			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
 		}):Play()
 	else
-		-- Smooth collapse animation
 		TweenService:Create(profileMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
 			Size = UDim2.new(0, 160, 0, 0)
 		}):Play()
@@ -271,6 +250,8 @@ profileBtn.Activated:Connect(function()
 		profileMenu.Visible = false
 	end
 end)
+
+-- Camlock Button
 local camLockBtn = Instance.new("TextButton")
 camLockBtn.Size = UDim2.new(0, 110, 0, 50)
 camLockBtn.Position = UDim2.new(0.06, 120, 0.8, 0)
@@ -406,7 +387,6 @@ local function unlockCam()
 	camLockBtn.Text = "CAM LOCK"
 	camLockBtn.BackgroundColor3 = Color3.fromRGB(206, 137, 36)
 	if not charLockTarget then detachBillboard() end
-	-- Restore camera to normal
 	if camera then
 		camera.CameraType = Enum.CameraType.Custom
 		if humanoid then
@@ -472,49 +452,11 @@ spawn(function()
 	end
 end)
 
--- ============================================
--- FIX #1: Character Rotation (BODYGYRO METHOD - ADAPTIVE SYSTEM)
--- ============================================
--- Network-aware rotation with ping compensation
-
+-- Character Rotation (BODYGYRO METHOD)
 local bodyGyro
 
--- Profile settings (controlled by UI buttons + adaptive system)
 GYRO_POWER = 15000
 GYRO_DAMPING = 300
-
--- Adaptive tuning based on network conditions
-local function updateAdaptiveSettings()
-	if not isAdaptiveMode then return end
-	
-	-- Ping-based adjustment
-	if currentPing < 50 then
-		GYRO_POWER = 20000
-		GYRO_DAMPING = 250
-	elseif currentPing < 100 then
-		GYRO_POWER = 15000
-		GYRO_DAMPING = 300
-	elseif currentPing < 200 then
-		GYRO_POWER = 12000
-		GYRO_DAMPING = 450
-	elseif currentPing < 300 then
-		GYRO_POWER = 9000
-		GYRO_DAMPING = 600
-	else
-		GYRO_POWER = 7000
-		GYRO_DAMPING = 800
-	end
-end
-
--- Update adaptive settings periodically
-spawn(function()
-	while true do
-		wait(0.3)
-		if isAdaptiveMode then
-			updateAdaptiveSettings()
-		end
-	end
-end)
 
 RunService.Heartbeat:Connect(function()
 	if charLockTarget and hrp and humanoid and humanoid.Health > 0 then
@@ -538,7 +480,6 @@ RunService.Heartbeat:Connect(function()
 		local targetHum = charLockTarget:FindFirstChildWhichIsA("Humanoid")
 		
 		if targetHRP and targetHum and targetHum.Health > 0 then
-			-- Create BodyGyro if it doesn't exist
 			if not bodyGyro or bodyGyro.Parent ~= hrp then
 				bodyGyro = Instance.new("BodyGyro")
 				bodyGyro.MaxTorque = Vector3.new(0, math.huge, 0)
@@ -547,16 +488,12 @@ RunService.Heartbeat:Connect(function()
 				bodyGyro.Parent = hrp
 			end
 			
-			-- Calculate look direction (WORKING METHOD - DON'T CHANGE!)
 			local lookPos = Vector3.new(targetHRP.Position.X, hrp.Position.Y, targetHRP.Position.Z)
 			local lookCFrame = CFrame.new(hrp.Position, lookPos)
 			
-			-- Apply rotation
 			bodyGyro.CFrame = lookCFrame
-			
-			-- Apply current profile settings
-			if bodyGyro.P ~= GYRO_POWER then bodyGyro.P = GYRO_POWER end
-			if bodyGyro.D ~= GYRO_DAMPING then bodyGyro.D = GYRO_DAMPING end
+			bodyGyro.P = GYRO_POWER
+			bodyGyro.D = GYRO_DAMPING
 		else
 			unlockChar()
 			if bodyGyro then
@@ -572,49 +509,36 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
--- ============================================
--- Camera Lock loop (CONSOLE-STYLE - ORIGINAL)
--- ============================================
+-- Camera Lock
 local CAMERA_DISTANCE = 15
 local CAMERA_HEIGHT = 3
 
 RunService.RenderStepped:Connect(function()
 	if camLockTarget and camera and hrp and humanoid then
-		-- FORCE camera to scriptable EVERY FRAME (prevents default camera from taking over)
 		camera.CameraType = Enum.CameraType.Scriptable
 		
 		local targetHRP = camLockTarget:FindFirstChild("HumanoidRootPart")
 		local targetHum = camLockTarget:FindFirstChildWhichIsA("Humanoid")
 		
 		if targetHRP and targetHum and targetHum.Health > 0 then
-			-- Get player position
 			local playerPos = hrp.Position + Vector3.new(0, CAMERA_HEIGHT, 0)
-			
-			-- Calculate direction from player to target
 			local directionToTarget = (targetHRP.Position - playerPos).Unit
-			
-			-- Position camera BEHIND player
 			local cameraPosition = playerPos - (directionToTarget * CAMERA_DISTANCE)
-			
-			-- Point camera at target
 			local targetLook = CFrame.new(cameraPosition, targetHRP.Position)
 			
-			-- Smooth transition
 			camera.CFrame = camera.CFrame:Lerp(targetLook, 0.2)
 		else
 			unlockCam()
 		end
 	end
 	
-	-- Force restore when not locked (prevent camera from staying scriptable)
 	if not camLockTarget and camera.CameraType == Enum.CameraType.Scriptable then
 		camera.CameraType = Enum.CameraType.Custom
 		camera.CameraSubject = humanoid
 	end
 end)
 
-print("Mobile Lock System [ADAPTIVE SYSTEM] loaded!")
-print("✅ CHAR LOCK: 4 Profiles (SMOOTH/SNAP/BUTTER/ADAPTIVE)")
-print("✅ SMOOTH Mode: Default balanced profile")
-print("✅ ADAPTIVE: Try when experiencing lag/jitter")
-print("💡 Click [+] to switch profiles | Drag to move")
+print("Mobile Lock System [3 PROFILES] loaded!")
+print("✅ SMOOTH (15000/300) | SNAP (25000/150) | BUTTER (6000/1500)")
+print("✅ BUTTER: MAXIMUM smoothness - ultra cinematic!")
+print("💡 Click [+] to switch | Drag to move")
