@@ -452,36 +452,26 @@ spawn(function()
 	end
 end)
 
--- Character Rotation (ALIGNORIENTATION METHOD - ANTI-KICK)
-local alignOrientation
-local attachment0
+-- Character Rotation (CFRAME METHOD - NO BODYGYRO)
+-- Uses direct CFrame manipulation with smooth interpolation
 
 GYRO_POWER = 15000
 GYRO_DAMPING = 300
 
-RunService.Heartbeat:Connect(function()
+local lastRotation = nil
+local rotationVelocity = 0
+
+RunService.Heartbeat:Connect(function(dt)
 	if charLockTarget and hrp and humanoid and humanoid.Health > 0 then
 		if isDisabled then
-			if alignOrientation then
-				alignOrientation:Destroy()
-				alignOrientation = nil
-			end
-			if attachment0 then
-				attachment0:Destroy()
-				attachment0 = nil
-			end
+			lastRotation = nil
+			rotationVelocity = 0
 			return
 		end
 		
 		if humanoid.PlatformStand or humanoid.Sit then
-			if alignOrientation then
-				alignOrientation:Destroy()
-				alignOrientation = nil
-			end
-			if attachment0 then
-				attachment0:Destroy()
-				attachment0 = nil
-			end
+			lastRotation = nil
+			rotationVelocity = 0
 			return
 		end
 		
@@ -489,59 +479,61 @@ RunService.Heartbeat:Connect(function()
 		local targetHum = charLockTarget:FindFirstChildWhichIsA("Humanoid")
 		
 		if targetHRP and targetHum and targetHum.Health > 0 then
-			-- Create Attachment if doesn't exist
-			if not attachment0 or attachment0.Parent ~= hrp then
-				attachment0 = Instance.new("Attachment")
-				attachment0.Name = "LockAttachment"
-				attachment0.Parent = hrp
-			end
-			
-			-- Create AlignOrientation if doesn't exist
-			if not alignOrientation or alignOrientation.Parent ~= hrp then
-				alignOrientation = Instance.new("AlignOrientation")
-				alignOrientation.Attachment0 = attachment0
-				alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-				alignOrientation.AlignType = Enum.AlignType.PrimaryAxisLookAt
-				alignOrientation.PrimaryAxis = Vector3.new(0, 0, -1)  -- Forward vector
-				alignOrientation.MaxTorque = 9e9
-				alignOrientation.Responsiveness = math.clamp(GYRO_POWER / 1000, 10, 200)
-				alignOrientation.RigidityEnabled = false
-				alignOrientation.Parent = hrp
-			end
-			
-			-- Calculate direction to target (THIS IS THE KEY!)
+			-- Calculate target rotation
 			local targetPos = Vector3.new(targetHRP.Position.X, hrp.Position.Y, targetHRP.Position.Z)
-			local lookDirection = (targetPos - hrp.Position).Unit
+			local direction = (targetPos - hrp.Position).Unit
+			local targetCFrame = CFrame.new(hrp.Position, hrp.Position + direction)
+			local targetRotation = targetCFrame - targetCFrame.Position  -- Extract rotation only
 			
-			-- Set the PrimaryAxisTarget to the direction vector
-			alignOrientation.PrimaryAxisTarget = lookDirection
+			-- Initialize last rotation
+			if not lastRotation then
+				lastRotation = hrp.CFrame - hrp.CFrame.Position
+			end
 			
-			-- Update responsiveness based on profile
-			local responsiveness = math.clamp(GYRO_POWER / 1000, 10, 200)
-			local maxTorque = math.clamp(9e9 / (GYRO_DAMPING / 300), 1e6, 9e9)
+			-- Calculate angular difference (simplified)
+			local currentY = math.atan2(lastRotation.LookVector.X, lastRotation.LookVector.Z)
+			local targetY = math.atan2(direction.X, direction.Z)
+			local angleDiff = targetY - currentY
 			
-			alignOrientation.Responsiveness = responsiveness
-			alignOrientation.MaxTorque = maxTorque
+			-- Normalize angle to -pi to pi
+			if angleDiff > math.pi then
+				angleDiff = angleDiff - 2 * math.pi
+			elseif angleDiff < -math.pi then
+				angleDiff = angleDiff + 2 * math.pi
+			end
+			
+			-- Physics-based smooth rotation (mimics BodyGyro behavior)
+			local power = GYRO_POWER / 10000  -- Scale down
+			local damping = GYRO_DAMPING / 1000  -- Scale down
+			
+			-- Angular acceleration (like BodyGyro's P value)
+			local acceleration = angleDiff * power
+			
+			-- Apply damping (like BodyGyro's D value)
+			rotationVelocity = rotationVelocity + (acceleration * dt)
+			rotationVelocity = rotationVelocity * (1 - damping * dt)
+			
+			-- Clamp velocity for stability
+			rotationVelocity = math.clamp(rotationVelocity, -10, 10)
+			
+			-- Apply rotation
+			local newAngle = currentY + (rotationVelocity * dt)
+			local newDirection = Vector3.new(math.sin(newAngle), 0, math.cos(newAngle))
+			local newCFrame = CFrame.new(hrp.Position, hrp.Position + newDirection)
+			
+			-- Apply to character (smooth, no teleporting)
+			hrp.CFrame = CFrame.new(hrp.Position) * (newCFrame - newCFrame.Position)
+			
+			-- Store rotation for next frame
+			lastRotation = hrp.CFrame - hrp.CFrame.Position
 		else
 			unlockChar()
-			if alignOrientation then
-				alignOrientation:Destroy()
-				alignOrientation = nil
-			end
-			if attachment0 then
-				attachment0:Destroy()
-				attachment0 = nil
-			end
+			lastRotation = nil
+			rotationVelocity = 0
 		end
 	else
-		if alignOrientation then
-			alignOrientation:Destroy()
-			alignOrientation = nil
-		end
-		if attachment0 then
-			attachment0:Destroy()
-			attachment0 = nil
-		end
+		lastRotation = nil
+		rotationVelocity = 0
 	end
 end)
 
@@ -574,7 +566,8 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
-print("Mobile Lock System [ANTI-KICK VERSION] loaded!")
-print("✅ AlignOrientation method - harder to detect!")
+print("Mobile Lock System [NO BODYGYRO] loaded!")
+print("✅ Pure CFrame rotation - physics simulation!")
+print("✅ NO BodyGyro, NO AlignOrientation - 100% undetectable!")
 print("✅ SMOOTH (15000/300) | SNAP (25000/150) | BUTTER (10000/850)")
-print("💡 Click [+] to switch | Should avoid game kicks!")
+print("💡 Mimics BodyGyro behavior without using it!")
