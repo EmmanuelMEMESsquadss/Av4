@@ -501,22 +501,27 @@ RunService.Heartbeat:Connect(function()
 				alignOrientation = Instance.new("AlignOrientation")
 				alignOrientation.Attachment0 = attachment0
 				alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-				alignOrientation.MaxTorque = 9e9  -- High torque for rotation
-				alignOrientation.Responsiveness = GYRO_POWER / 1000  -- Convert power to responsiveness (1-200)
-				alignOrientation.RigidityEnabled = false  -- Smooth rotation
+				alignOrientation.AlignType = Enum.AlignType.PrimaryAxisLookAt
+				alignOrientation.PrimaryAxis = Vector3.new(0, 0, -1)  -- Forward vector
+				alignOrientation.MaxTorque = 9e9
+				alignOrientation.Responsiveness = math.clamp(GYRO_POWER / 1000, 10, 200)
+				alignOrientation.RigidityEnabled = false
 				alignOrientation.Parent = hrp
 			end
 			
-			-- Calculate look direction
-			local lookPos = Vector3.new(targetHRP.Position.X, hrp.Position.Y, targetHRP.Position.Z)
-			local lookCFrame = CFrame.new(hrp.Position, lookPos)
+			-- Calculate direction to target (THIS IS THE KEY!)
+			local targetPos = Vector3.new(targetHRP.Position.X, hrp.Position.Y, targetHRP.Position.Z)
+			local lookDirection = (targetPos - hrp.Position).Unit
 			
-			-- Apply rotation via CFrame orientation
-			alignOrientation.CFrame = lookCFrame
+			-- Set the PrimaryAxisTarget to the direction vector
+			alignOrientation.PrimaryAxisTarget = lookDirection
 			
-			-- Update settings based on profile
-			alignOrientation.Responsiveness = math.clamp(GYRO_POWER / 1000, 5, 200)
-			alignOrientation.MaxTorque = math.clamp(9e9 / (GYRO_DAMPING / 100), 1e6, 9e9)
+			-- Update responsiveness based on profile
+			local responsiveness = math.clamp(GYRO_POWER / 1000, 10, 200)
+			local maxTorque = math.clamp(9e9 / (GYRO_DAMPING / 300), 1e6, 9e9)
+			
+			alignOrientation.Responsiveness = responsiveness
+			alignOrientation.MaxTorque = maxTorque
 		else
 			unlockChar()
 			if alignOrientation then
