@@ -147,7 +147,7 @@ menuCorner.Parent = profileMenu
 local profiles = {
 	{name = "SMOOTH", desc = "Balanced", power = 15000, damping = 300, color = Color3.fromRGB(80, 200, 120)},
 	{name = "SNAP", desc = "Instant", power = 25000, damping = 150, color = Color3.fromRGB(255, 140, 60)},
-	{name = "BUTTER", desc = "Ultra Smooth", power = 25000, damping = 850, color = Color3.fromRGB(100, 180, 255)}
+	{name = "BUTTER", desc = "Ultra Smooth", power = 10000, damping = 850, color = Color3.fromRGB(100, 180, 255)}
 }
 
 local currentProfile = 1
@@ -452,8 +452,9 @@ spawn(function()
 	end
 end)
 
--- Character Rotation (BODYGYRO METHOD)
-local bodyGyro
+-- Character Rotation (ALIGNORIENTATION METHOD - ANTI-KICK)
+local alignOrientation
+local attachment0
 
 GYRO_POWER = 15000
 GYRO_DAMPING = 300
@@ -461,17 +462,25 @@ GYRO_DAMPING = 300
 RunService.Heartbeat:Connect(function()
 	if charLockTarget and hrp and humanoid and humanoid.Health > 0 then
 		if isDisabled then
-			if bodyGyro then
-				bodyGyro:Destroy()
-				bodyGyro = nil
+			if alignOrientation then
+				alignOrientation:Destroy()
+				alignOrientation = nil
+			end
+			if attachment0 then
+				attachment0:Destroy()
+				attachment0 = nil
 			end
 			return
 		end
 		
 		if humanoid.PlatformStand or humanoid.Sit then
-			if bodyGyro then
-				bodyGyro:Destroy()
-				bodyGyro = nil
+			if alignOrientation then
+				alignOrientation:Destroy()
+				alignOrientation = nil
+			end
+			if attachment0 then
+				attachment0:Destroy()
+				attachment0 = nil
 			end
 			return
 		end
@@ -480,31 +489,53 @@ RunService.Heartbeat:Connect(function()
 		local targetHum = charLockTarget:FindFirstChildWhichIsA("Humanoid")
 		
 		if targetHRP and targetHum and targetHum.Health > 0 then
-			if not bodyGyro or bodyGyro.Parent ~= hrp then
-				bodyGyro = Instance.new("BodyGyro")
-				bodyGyro.MaxTorque = Vector3.new(0, math.huge, 0)
-				bodyGyro.P = GYRO_POWER
-				bodyGyro.D = GYRO_DAMPING
-				bodyGyro.Parent = hrp
+			-- Create Attachment if doesn't exist
+			if not attachment0 or attachment0.Parent ~= hrp then
+				attachment0 = Instance.new("Attachment")
+				attachment0.Name = "LockAttachment"
+				attachment0.Parent = hrp
 			end
 			
+			-- Create AlignOrientation if doesn't exist
+			if not alignOrientation or alignOrientation.Parent ~= hrp then
+				alignOrientation = Instance.new("AlignOrientation")
+				alignOrientation.Attachment0 = attachment0
+				alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+				alignOrientation.MaxTorque = 9e9  -- High torque for rotation
+				alignOrientation.Responsiveness = GYRO_POWER / 1000  -- Convert power to responsiveness (1-200)
+				alignOrientation.RigidityEnabled = false  -- Smooth rotation
+				alignOrientation.Parent = hrp
+			end
+			
+			-- Calculate look direction
 			local lookPos = Vector3.new(targetHRP.Position.X, hrp.Position.Y, targetHRP.Position.Z)
 			local lookCFrame = CFrame.new(hrp.Position, lookPos)
 			
-			bodyGyro.CFrame = lookCFrame
-			bodyGyro.P = GYRO_POWER
-			bodyGyro.D = GYRO_DAMPING
+			-- Apply rotation via CFrame orientation
+			alignOrientation.CFrame = lookCFrame
+			
+			-- Update settings based on profile
+			alignOrientation.Responsiveness = math.clamp(GYRO_POWER / 1000, 5, 200)
+			alignOrientation.MaxTorque = math.clamp(9e9 / (GYRO_DAMPING / 100), 1e6, 9e9)
 		else
 			unlockChar()
-			if bodyGyro then
-				bodyGyro:Destroy()
-				bodyGyro = nil
+			if alignOrientation then
+				alignOrientation:Destroy()
+				alignOrientation = nil
+			end
+			if attachment0 then
+				attachment0:Destroy()
+				attachment0 = nil
 			end
 		end
 	else
-		if bodyGyro then
-			bodyGyro:Destroy()
-			bodyGyro = nil
+		if alignOrientation then
+			alignOrientation:Destroy()
+			alignOrientation = nil
+		end
+		if attachment0 then
+			attachment0:Destroy()
+			attachment0 = nil
 		end
 	end
 end)
@@ -538,7 +569,7 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
-print("Mobile Lock System [3 PROFILES] loaded!")
+print("Mobile Lock System [ANTI-KICK VERSION] loaded!")
+print("✅ AlignOrientation method - harder to detect!")
 print("✅ SMOOTH (15000/300) | SNAP (25000/150) | BUTTER (10000/850)")
-print("✅ BUTTER: Smooth + Fast tracking - perfect balance!")
-print("💡 Click [+] to switch | Drag to move")
+print("💡 Click [+] to switch | Should avoid game kicks!")
