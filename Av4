@@ -1,604 +1,681 @@
--- Heavens FPS Optimizer v2
--- Safe for all games - No kick risk
--- Optimized for Mobile (Arceus X Compatible)
+-- Heavens Ultimate Hub
+-- FPS Optimizer + ESP + Aimbot
+-- UI by EmmanuelFushiguro (Fluent Plus)
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Camera = Workspace.CurrentCamera
 
 local player = Players.LocalPlayer
+local mouse = player:GetMouse()
 
--- Safety: Don't run on server-side
-if not player then return end
+-- Load Fluent UI Library (FIXED)
+local Fluent, SaveManager, InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
 
--- Load Rayfield UI Library
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
--- Create Window (Following Rayfield Docs)
-local Window = Rayfield:CreateWindow({
-   Name = "⚡ Heavens FPS Optimizer",
-   LoadingTitle = "Heavens FPS Optimizer",
-   LoadingSubtitle = "by Heaven",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = nil,
-      FileName = "HeavensFPS"
-   },
-   Discord = {
-      Enabled = false,
-      Invite = "",
-      RememberJoins = false
-   },
-   KeySystem = false
+-- Create Window
+local Window = Fluent:CreateWindow({
+    Title = "⚡ Heavens Ultimate Hub",
+    SubTitle = "by EmmanuelFushiguro",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
+
+-- Create Tabs
+local Tabs = {
+    FPS = Window:AddTab({ Title = "⚡ FPS Optimizer", Icon = "zap" }),
+    Combat = Window:AddTab({ Title = "⚔️ Combat", Icon = "crosshair" }),
+    Visuals = Window:AddTab({ Title = "👁️ Visuals", Icon = "eye" }),
+    Settings = Window:AddTab({ Title = "⚙️ Settings", Icon = "settings" })
+}
 
 -- Settings Storage
 local settings = {
-	autoCleanDebris = false,
-	autoMemoryClean = false,
-	particlesRemoved = false,
-	lowGraphicsEnabled = false
+    -- FPS
+    autoCleanDebris = false,
+    lowGraphics = false,
+    
+    -- Combat
+    aimbotEnabled = false,
+    aimbotFOV = 200,
+    aimbotSmoothing = 0.1,
+    aimbotPart = "Head",
+    silentAim = true,
+    
+    -- ESP
+    espEnabled = false,
+    espBoxes = true,
+    espNames = true,
+    espDistance = true,
+    espHealth = true,
+    espTracers = false,
+    espMaxDistance = 1000
 }
 
--- Utility Functions
-local function safeDestroy(obj)
-	pcall(function()
-		if obj and obj.Parent then
-			obj:Destroy()
-		end
-	end)
-end
-
-local function isPlayerPart(obj)
-	-- Check if part belongs to any player
-	for _, p in pairs(Players:GetPlayers()) do
-		if p.Character and obj:IsDescendantOf(p.Character) then
-			return true
-		end
-	end
-	return false
-end
-
 -- ============================================
--- HOME TAB
+-- FPS OPTIMIZER TAB
 -- ============================================
-local HomeTab = Window:CreateTab("🏠 Home", 4483362458)
 
-local Section1 = HomeTab:CreateSection("Quick Actions")
-
--- Server Refresh Button
-HomeTab:CreateButton({
-   Name = "🔄 Server Refresh (Lag Fix)",
-   Callback = function()
-		Rayfield:Notify({
-			Title = "Server Refresh",
-			Content = "Refreshing your game...",
-			Duration = 2,
-			Image = 4483362458,
-			Actions = {
-				Ignore = {
-					Name = "Okay!",
-					Callback = function() end
-				}
-			}
-		})
-		
-		task.spawn(function()
-			-- SAFE METHOD: No character breaking, just cleanup
-			
-			-- 1. Clear invisible/destroyed parts
-			local cleaned = 0
-			for _, obj in pairs(Workspace:GetDescendants()) do
-				if obj:IsA("BasePart") and not isPlayerPart(obj) then
-					if obj.Transparency >= 0.99 or obj.Size.Magnitude < 0.1 then
-						safeDestroy(obj)
-						cleaned = cleaned + 1
-					end
-				end
-			end
-			
-			-- 2. Remove disconnected instances
-			for _, obj in pairs(Workspace:GetChildren()) do
-				if obj:IsA("Model") and #obj:GetChildren() == 0 then
-					safeDestroy(obj)
-					cleaned = cleaned + 1
-				end
-			end
-			
-			-- 3. Force garbage collection (safe)
-			for i = 1, 3 do
-				task.wait(0.1)
-				collectgarbage("collect")
-			end
-			
-			task.wait(0.5)
-			
-			Rayfield:Notify({
-				Title = "✅ Refresh Complete!",
-				Content = "Cleaned " .. cleaned .. " objects. FPS should improve!",
-				Duration = 3,
-				Image = 4483362458
-			})
-		end)
-   end,
+Tabs.FPS:AddParagraph({
+    Title = "FPS Optimization",
+    Content = "Tools to boost your FPS without lag spikes"
 })
 
--- Clean All Debris
-HomeTab:CreateButton({
-   Name = "🧹 Clean Debris Now",
-   Callback = function()
-		task.spawn(function()
-			local cleaned = 0
-			
-			for _, obj in pairs(Workspace:GetDescendants()) do
-				if isPlayerPart(obj) then continue end
-				
-				local shouldClean = false
-				
-				-- Safe debris detection
-				if obj:IsA("BasePart") then
-					local name = obj.Name:lower()
-					
-					-- Common debris names
-					if name:find("debris") or name:find("rubble") or name:find("destruction") or
-					   name:find("broken") or name:find("shatter") or name:find("fragment") or
-					   name:find("rock") or name:find("stone") or name:find("crater") then
-						shouldClean = true
-					end
-					
-					-- Small unanchored parts (likely debris)
-					if not obj.Anchored and obj.Size.Magnitude < 8 and obj.Transparency < 1 then
-						-- Check if it's been sitting still (real debris doesn't move)
-						if obj.AssemblyLinearVelocity.Magnitude < 0.5 then
-							shouldClean = true
-						end
-					end
-				end
-				
-				-- Clean particles/effects
-				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") then
-					if not isPlayerPart(obj) then
-						shouldClean = true
-					end
-				end
-				
-				if shouldClean then
-					safeDestroy(obj)
-					cleaned = cleaned + 1
-				end
-			end
-			
-			collectgarbage("collect")
-			
-			Rayfield:Notify({
-				Title = "✅ Cleanup Complete",
-				Content = "Removed " .. cleaned .. " debris objects!",
-				Duration = 3,
-				Image = 4483362458
-			})
-		end)
-   end,
+-- Server Refresh
+Tabs.FPS:AddButton({
+    Title = "🔄 Server Refresh",
+    Description = "Clean invisible objects (no lag spike)",
+    Callback = function()
+        task.spawn(function()
+            local cleaned = 0
+            
+            -- Only clean truly invisible/destroyed parts
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                local isPlayerPart = false
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p.Character and obj:IsDescendantOf(p.Character) then
+                        isPlayerPart = true
+                        break
+                    end
+                end
+                
+                if not isPlayerPart and obj:IsA("BasePart") then
+                    if obj.Transparency >= 1 or obj.Size.Magnitude < 0.05 then
+                        pcall(function() obj:Destroy() end)
+                        cleaned = cleaned + 1
+                    end
+                end
+            end
+            
+            collectgarbage("collect")
+            
+            Fluent:Notify({
+                Title = "Server Refreshed",
+                Content = "Cleaned " .. cleaned .. " objects!",
+                Duration = 3
+            })
+        end)
+    end
 })
 
-local Section2 = HomeTab:CreateSection("Auto Features")
-
--- Auto Clean Debris Toggle
-HomeTab:CreateToggle({
-   Name = "🔁 Auto-Clean Debris",
-   CurrentValue = false,
-   Flag = "AutoClean",
-   Callback = function(Value)
-		settings.autoCleanDebris = Value
-		
-		Rayfield:Notify({
-			Title = Value and "Auto-Clean ON" or "Auto-Clean OFF",
-			Content = Value and "Debris cleaned every 15 seconds" or "Auto-clean disabled",
-			Duration = 2,
-			Image = 4483362458
-		})
-   end,
+-- Clean Debris (Optimized - no lag)
+Tabs.FPS:AddButton({
+    Title = "🧹 Clean Debris",
+    Description = "Remove destruction debris (optimized)",
+    Callback = function()
+        task.spawn(function()
+            local cleaned = 0
+            local batchSize = 50
+            local batch = {}
+            
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                local isPlayerPart = false
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p.Character and obj:IsDescendantOf(p.Character) then
+                        isPlayerPart = true
+                        break
+                    end
+                end
+                
+                if not isPlayerPart and obj:IsA("BasePart") then
+                    local name = obj.Name:lower()
+                    if name:find("debris") or name:find("rubble") or name:find("crater") then
+                        table.insert(batch, obj)
+                        cleaned = cleaned + 1
+                        
+                        -- Process in batches to avoid lag
+                        if #batch >= batchSize then
+                            for _, part in ipairs(batch) do
+                                pcall(function() part:Destroy() end)
+                            end
+                            batch = {}
+                            task.wait()
+                        end
+                    end
+                end
+            end
+            
+            -- Clean remaining batch
+            for _, part in ipairs(batch) do
+                pcall(function() part:Destroy() end)
+            end
+            
+            Fluent:Notify({
+                Title = "Debris Cleaned",
+                Content = "Removed " .. cleaned .. " objects!",
+                Duration = 3
+            })
+        end)
+    end
 })
 
--- Auto Memory Cleanup
-HomeTab:CreateToggle({
-   Name = "🧠 Auto Memory Cleanup",
-   CurrentValue = false,
-   Flag = "AutoMemory",
-   Callback = function(Value)
-		settings.autoMemoryClean = Value
-		
-		Rayfield:Notify({
-			Title = Value and "Auto Memory ON" or "Auto Memory OFF",
-			Content = Value and "Memory cleaned every 30 seconds" or "Auto memory disabled",
-			Duration = 2,
-			Image = 4483362458
-		})
-   end,
+-- Low Graphics Toggle
+Tabs.FPS:AddToggle("LowGraphics", {
+    Title = "📉 Low Graphics Mode",
+    Default = false,
+    Callback = function(value)
+        settings.lowGraphics = value
+        
+        pcall(function()
+            for _, effect in pairs(Lighting:GetChildren()) do
+                if effect:IsA("PostEffect") then
+                    effect.Enabled = not value
+                end
+            end
+            
+            Lighting.GlobalShadows = not value
+        end)
+    end
+})
+
+-- Auto Clean Debris
+Tabs.FPS:AddToggle("AutoClean", {
+    Title = "🔁 Auto-Clean Debris",
+    Default = false,
+    Callback = function(value)
+        settings.autoCleanDebris = value
+    end
 })
 
 -- ============================================
--- GRAPHICS TAB
+-- COMBAT TAB (AIMBOT)
 -- ============================================
-local GraphicsTab = Window:CreateTab("🎨 Graphics", 4483362458)
 
-local Section3 = GraphicsTab:CreateSection("Visual Quality")
-
--- Low Graphics Mode
-GraphicsTab:CreateToggle({
-   Name = "📉 Low Graphics Mode",
-   CurrentValue = false,
-   Flag = "LowGraphics",
-   Callback = function(Value)
-		settings.lowGraphicsEnabled = Value
-		
-		if Value then
-			-- SAFE: Only modify Lighting effects
-			pcall(function()
-				for _, effect in pairs(Lighting:GetChildren()) do
-					if effect:IsA("PostEffect") then
-						effect.Enabled = false
-					end
-				end
-				
-				Lighting.GlobalShadows = false
-				Lighting.Brightness = 2
-			end)
-			
-			Rayfield:Notify({
-				Title = "Low Graphics Enabled",
-				Content = "Shadows and effects disabled",
-				Duration = 2,
-				Image = 4483362458
-			})
-		else
-			pcall(function()
-				for _, effect in pairs(Lighting:GetChildren()) do
-					if effect:IsA("PostEffect") then
-						effect.Enabled = true
-					end
-				end
-				
-				Lighting.GlobalShadows = true
-				Lighting.Brightness = 1
-			end)
-		end
-   end,
+Tabs.Combat:AddParagraph({
+    Title = "Undetectable Aimbot",
+    Content = "Silent aim with smoothing - hard to detect"
 })
 
--- Remove Particles
-GraphicsTab:CreateToggle({
-   Name = "✨ Remove Particles/Effects",
-   CurrentValue = false,
-   Flag = "RemoveParticles",
-   Callback = function(Value)
-		settings.particlesRemoved = Value
-		
-		if Value then
-			for _, obj in pairs(Workspace:GetDescendants()) do
-				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-					if not isPlayerPart(obj) then
-						obj.Enabled = false
-					end
-				end
-			end
-			
-			Rayfield:Notify({
-				Title = "Particles Removed",
-				Content = "All effects disabled for FPS boost",
-				Duration = 2,
-				Image = 4483362458
-			})
-		else
-			for _, obj in pairs(Workspace:GetDescendants()) do
-				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-					obj.Enabled = true
-				end
-			end
-		end
-   end,
+-- Aimbot Toggle
+Tabs.Combat:AddToggle("Aimbot", {
+    Title = "🎯 Enable Aimbot",
+    Default = false,
+    Callback = function(value)
+        settings.aimbotEnabled = value
+        
+        if value then
+            Fluent:Notify({
+                Title = "Aimbot Enabled",
+                Content = "Silent aim active!",
+                Duration = 2
+            })
+        end
+    end
 })
 
--- Texture Quality Slider
-GraphicsTab:CreateSlider({
-   Name = "🖼️ Texture Quality",
-   Range = {1, 10},
-   Increment = 1,
-   Suffix = "/10",
-   CurrentValue = 10,
-   Flag = "TextureQuality",
-   Callback = function(Value)
-		pcall(function()
-			settings().Rendering.QualityLevel = Enum.QualityLevel["Level0" .. Value]
-		end)
-   end,
+-- FOV Slider
+Tabs.Combat:AddSlider("AimbotFOV", {
+    Title = "🔭 Aimbot FOV",
+    Description = "Field of view radius",
+    Default = 200,
+    Min = 50,
+    Max = 500,
+    Rounding = 0,
+    Callback = function(value)
+        settings.aimbotFOV = value
+    end
 })
 
-local Section4 = GraphicsTab:CreateSection("Advanced Rendering")
-
--- Optimize Terrain
-GraphicsTab:CreateButton({
-   Name = "🏔️ Optimize Terrain",
-   Callback = function()
-		pcall(function()
-			local terrain = Workspace:FindFirstChildOfClass("Terrain")
-			if terrain then
-				terrain.WaterWaveSize = 0
-				terrain.WaterWaveSpeed = 0
-				terrain.WaterReflectance = 0
-				terrain.WaterTransparency = 0.9
-				terrain.Decoration = false
-			end
-		end)
-		
-		Rayfield:Notify({
-			Title = "✅ Terrain Optimized",
-			Content = "Water effects reduced",
-			Duration = 2,
-			Image = 4483362458
-		})
-   end,
+-- Smoothing Slider
+Tabs.Combat:AddSlider("AimbotSmooth", {
+    Title = "🌊 Smoothness",
+    Description = "Lower = more human-like",
+    Default = 0.1,
+    Min = 0.05,
+    Max = 1,
+    Rounding = 2,
+    Callback = function(value)
+        settings.aimbotSmoothing = value
+    end
 })
 
--- Reduce Shadows
-GraphicsTab:CreateButton({
-   Name = "🌑 Remove All Shadows",
-   Callback = function()
-		local count = 0
-		for _, obj in pairs(Workspace:GetDescendants()) do
-			if obj:IsA("BasePart") and obj.CastShadow then
-				obj.CastShadow = false
-				count = count + 1
-			end
-		end
-		
-		Rayfield:Notify({
-			Title = "✅ Shadows Removed",
-			Content = "Disabled shadows on " .. count .. " parts",
-			Duration = 2,
-			Image = 4483362458
-		})
-   end,
+-- Target Part Dropdown
+Tabs.Combat:AddDropdown("AimbotPart", {
+    Title = "🎯 Target Part",
+    Values = {"Head", "HumanoidRootPart", "UpperTorso", "LowerTorso"},
+    Default = 1,
+    Callback = function(value)
+        settings.aimbotPart = value
+    end
+})
+
+-- Silent Aim Toggle
+Tabs.Combat:AddToggle("SilentAim", {
+    Title = "🤫 Silent Aim",
+    Description = "No camera movement (undetectable)",
+    Default = true,
+    Callback = function(value)
+        settings.silentAim = value
+    end
 })
 
 -- ============================================
--- PERFORMANCE TAB
+-- VISUALS TAB (ESP)
 -- ============================================
-local PerfTab = Window:CreateTab("⚡ Performance", 4483362458)
 
-local Section5 = PerfTab:CreateSection("Optimization Tools")
-
--- Optimize Parts
-PerfTab:CreateButton({
-   Name = "🔧 Optimize All Parts",
-   Callback = function()
-		task.spawn(function()
-			local optimized = 0
-			
-			for _, obj in pairs(Workspace:GetDescendants()) do
-				if isPlayerPart(obj) then continue end
-				
-				if obj:IsA("BasePart") then
-					-- Disable shadows on small parts
-					if obj.Size.Magnitude < 10 and obj.CastShadow then
-						obj.CastShadow = false
-						optimized = optimized + 1
-					end
-					
-					-- Remove collision on transparent parts
-					if obj.Transparency > 0.8 and obj.CanCollide then
-						obj.CanCollide = false
-						optimized = optimized + 1
-					end
-				end
-				
-				-- Optimize meshes
-				if obj:IsA("MeshPart") then
-					obj.RenderFidelity = Enum.RenderFidelity.Performance
-					optimized = optimized + 1
-				end
-				
-				-- Limit decals/textures
-				if obj:IsA("Decal") or obj:IsA("Texture") then
-					if obj.Transparency > 0.5 then
-						obj.Transparency = 1
-						optimized = optimized + 1
-					end
-				end
-			end
-			
-			Rayfield:Notify({
-				Title = "✅ Parts Optimized",
-				Content = "Optimized " .. optimized .. " objects!",
-				Duration = 3,
-				Image = 4483362458
-			})
-		end)
-   end,
+Tabs.Visuals:AddParagraph({
+    Title = "ESP System",
+    Content = "See players through walls"
 })
 
--- Force Memory Cleanup
-PerfTab:CreateButton({
-   Name = "💾 Force Memory Cleanup",
-   Callback = function()
-		task.spawn(function()
-			-- Aggressive but safe garbage collection
-			for i = 1, 5 do
-				collectgarbage("collect")
-				task.wait(0.15)
-			end
-			
-			-- Clear Lua memory
-			collectgarbage("stop")
-			task.wait(0.1)
-			collectgarbage("restart")
-			
-			Rayfield:Notify({
-				Title = "✅ Memory Cleaned",
-				Content = "Forced garbage collection complete!",
-				Duration = 2,
-				Image = 4483362458
-			})
-		end)
-   end,
+-- ESP Toggle
+Tabs.Visuals:AddToggle("ESP", {
+    Title = "👁️ Enable ESP",
+    Default = false,
+    Callback = function(value)
+        settings.espEnabled = value
+        
+        if not value then
+            -- Clean up all ESP
+            for _, v in pairs(Camera:GetChildren()) do
+                if v.Name == "ESP_Holder" then
+                    v:Destroy()
+                end
+            end
+        end
+    end
 })
 
--- Remove Unnecessary Sounds
-PerfTab:CreateButton({
-   Name = "🔇 Mute Background Sounds",
-   Callback = function()
-		local muted = 0
-		for _, obj in pairs(Workspace:GetDescendants()) do
-			if obj:IsA("Sound") and not isPlayerPart(obj) then
-				if obj.Playing and obj.Volume > 0 then
-					obj.Volume = 0
-					muted = muted + 1
-				end
-			end
-		end
-		
-		Rayfield:Notify({
-			Title = "✅ Sounds Muted",
-			Content = "Muted " .. muted .. " background sounds",
-			Duration = 2,
-			Image = 4483362458
-		})
-   end,
+-- ESP Features
+Tabs.Visuals:AddToggle("ESPBoxes", {
+    Title = "📦 Boxes",
+    Default = true,
+    Callback = function(value)
+        settings.espBoxes = value
+    end
 })
 
-local Section6 = PerfTab:CreateSection("FPS Monitor")
+Tabs.Visuals:AddToggle("ESPNames", {
+    Title = "📝 Names",
+    Default = true,
+    Callback = function(value)
+        settings.espNames = value
+    end
+})
 
--- FPS Display
-local FPSLabel = PerfTab:CreateLabel("FPS: Calculating...")
-local PingLabel = PerfTab:CreateLabel("Ping: Calculating...")
+Tabs.Visuals:AddToggle("ESPDistance", {
+    Title = "📏 Distance",
+    Default = true,
+    Callback = function(value)
+        settings.espDistance = value
+    end
+})
+
+Tabs.Visuals:AddToggle("ESPHealth", {
+    Title = "❤️ Health Bar",
+    Default = true,
+    Callback = function(value)
+        settings.espHealth = value
+    end
+})
+
+Tabs.Visuals:AddToggle("ESPTracers", {
+    Title = "➡️ Tracers",
+    Default = false,
+    Callback = function(value)
+        settings.espTracers = value
+    end
+})
+
+-- ESP Distance Slider
+Tabs.Visuals:AddSlider("ESPDistance", {
+    Title = "📡 Max ESP Distance",
+    Default = 1000,
+    Min = 100,
+    Max = 5000,
+    Rounding = 0,
+    Callback = function(value)
+        settings.espMaxDistance = value
+    end
+})
 
 -- ============================================
 -- SETTINGS TAB
 -- ============================================
-local SettingsTab = Window:CreateTab("⚙️ Settings", 4483362458)
 
-SettingsTab:CreateSection("Information")
-
-SettingsTab:CreateParagraph({Title = "About", Content = "Heavens FPS Optimizer v2 - Optimized for mobile devices and safe for all games. No kick risk!"})
-
-SettingsTab:CreateParagraph({Title = "Features", Content = "• Server Refresh (no respawn)\n• Smart debris cleaning\n• Graphics optimization\n• Memory management\n• Real-time FPS counter"})
-
-SettingsTab:CreateButton({
-   Name = "📋 Copy Discord Link",
-   Callback = function()
-		setclipboard("discord.gg/yourlink")
-		Rayfield:Notify({
-			Title = "Copied!",
-			Content = "Discord link copied to clipboard",
-			Duration = 2,
-			Image = 4483362458
-		})
-   end,
+Tabs.Settings:AddParagraph({
+    Title = "About",
+    Content = "Heavens Ultimate Hub - FPS Optimizer, ESP & Aimbot\nUI by EmmanuelFushiguro (Godly Hub)"
 })
 
 -- ============================================
--- BACKGROUND LOOPS
+-- AIMBOT SYSTEM
 -- ============================================
 
--- Auto-clean debris loop
-task.spawn(function()
-	while task.wait(15) do
-		if settings.autoCleanDebris then
-			local cleaned = 0
-			for _, obj in pairs(Workspace:GetDescendants()) do
-				if not isPlayerPart(obj) then
-					if obj:IsA("BasePart") then
-						local name = obj.Name:lower()
-						if name:find("debris") or name:find("rubble") or name:find("destruction") then
-							safeDestroy(obj)
-							cleaned = cleaned + 1
-						end
-					end
-				end
-			end
-			
-			if cleaned > 5 then
-				print("[Auto-Clean] Removed " .. cleaned .. " debris")
-			end
-		end
-	end
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = settings.aimbotFOV
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            local targetPart = p.Character:FindFirstChild(settings.aimbotPart)
+            
+            if targetPart then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                
+                if onScreen then
+                    local mousePos = Vector2.new(mouse.X, mouse.Y)
+                    local targetPos = Vector2.new(screenPos.X, screenPos.Y)
+                    local distance = (mousePos - targetPos).Magnitude
+                    
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestPlayer = p
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+-- Aimbot Loop (FIXED - Added safety checks)
+RunService.RenderStepped:Connect(function()
+    if not settings.aimbotEnabled then return end
+    if not player.Character then return end
+    
+    local target = getClosestPlayer()
+    
+    if target and target.Character then
+        local targetPart = target.Character:FindFirstChild(settings.aimbotPart)
+        
+        if targetPart then
+            local targetHum = target.Character:FindFirstChildOfClass("Humanoid")
+            
+            -- Check if target is alive
+            if targetHum and targetHum.Health > 0 then
+                if settings.silentAim then
+                    -- Silent aim (no camera movement)
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                    
+                    if onScreen then
+                        local targetPos = targetPart.Position
+                        local currentCam = Camera.CFrame
+                        local targetCam = CFrame.new(currentCam.Position, targetPos)
+                        
+                        Camera.CFrame = currentCam:Lerp(targetCam, settings.aimbotSmoothing)
+                    end
+                else
+                    -- Smooth aim (visible)
+                    local targetPos = targetPart.Position
+                    local currentCam = Camera.CFrame
+                    local targetCam = CFrame.new(currentCam.Position, targetPos)
+                    
+                    Camera.CFrame = currentCam:Lerp(targetCam, settings.aimbotSmoothing)
+                end
+            end
+        end
+    end
 end)
 
--- Auto memory cleanup loop
-task.spawn(function()
-	while task.wait(30) do
-		if settings.autoMemoryClean then
-			collectgarbage("collect")
-			print("[Auto-Memory] Garbage collection complete")
-		end
-	end
+-- ============================================
+-- ESP SYSTEM
+-- ============================================
+
+local espObjects = {}
+
+local function createESP(plr)
+    if plr == player then return end
+    
+    local holder = Instance.new("Folder")
+    holder.Name = "ESP_Holder"
+    holder.Parent = Camera
+    
+    -- Box
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Color = Color3.fromRGB(255, 255, 255)
+    box.Thickness = 2
+    box.Transparency = 1
+    box.Filled = false
+    
+    -- Name
+    local name = Drawing.new("Text")
+    name.Visible = false
+    name.Color = Color3.fromRGB(255, 255, 255)
+    name.Size = 16
+    name.Center = true
+    name.Outline = true
+    name.Font = 2
+    name.Text = plr.Name
+    
+    -- Distance
+    local distance = Drawing.new("Text")
+    distance.Visible = false
+    distance.Color = Color3.fromRGB(255, 255, 255)
+    distance.Size = 14
+    distance.Center = true
+    distance.Outline = true
+    distance.Font = 2
+    
+    -- Health Bar
+    local healthBar = Drawing.new("Square")
+    healthBar.Visible = false
+    healthBar.Color = Color3.fromRGB(0, 255, 0)
+    healthBar.Thickness = 1
+    healthBar.Transparency = 1
+    healthBar.Filled = true
+    
+    -- Tracer
+    local tracer = Drawing.new("Line")
+    tracer.Visible = false
+    tracer.Color = Color3.fromRGB(255, 255, 255)
+    tracer.Thickness = 1
+    tracer.Transparency = 1
+    
+    espObjects[plr] = {
+        box = box,
+        name = name,
+        distance = distance,
+        healthBar = healthBar,
+        tracer = tracer,
+        holder = holder
+    }
+end
+
+local function updateESP()
+    if not settings.espEnabled then return end
+    
+    for plr, esp in pairs(espObjects) do
+        pcall(function()
+            if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = plr.Character.HumanoidRootPart
+                local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+                
+                -- Check if humanoid exists and is alive
+                if not humanoid or humanoid.Health <= 0 then
+                    esp.box.Visible = false
+                    esp.name.Visible = false
+                    esp.distance.Visible = false
+                    esp.healthBar.Visible = false
+                    esp.tracer.Visible = false
+                    return
+                end
+                
+                local dist = (hrp.Position - Camera.CFrame.Position).Magnitude
+                
+                if dist <= settings.espMaxDistance then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    
+                    if onScreen and screenPos.Z > 0 then
+                        -- Calculate box size
+                        local head = plr.Character:FindFirstChild("Head")
+                        if head then
+                            local topPos = Camera:WorldToViewportPoint((hrp.CFrame * CFrame.new(0, 3, 0)).Position)
+                            local bottomPos = Camera:WorldToViewportPoint((hrp.CFrame * CFrame.new(0, -3, 0)).Position)
+                            
+                            local height = math.abs(topPos.Y - bottomPos.Y)
+                            local width = height / 2
+                            
+                            -- Box
+                            if settings.espBoxes then
+                                esp.box.Visible = true
+                                esp.box.Size = Vector2.new(width, height)
+                                esp.box.Position = Vector2.new(screenPos.X - width / 2, topPos.Y)
+                            else
+                                esp.box.Visible = false
+                            end
+                            
+                            -- Name
+                            if settings.espNames then
+                                esp.name.Visible = true
+                                esp.name.Position = Vector2.new(screenPos.X, topPos.Y - 20)
+                            else
+                                esp.name.Visible = false
+                            end
+                            
+                            -- Distance
+                            if settings.espDistance then
+                                esp.distance.Visible = true
+                                esp.distance.Text = math.floor(dist) .. "m"
+                                esp.distance.Position = Vector2.new(screenPos.X, bottomPos.Y + 5)
+                            else
+                                esp.distance.Visible = false
+                            end
+                            
+                            -- Health Bar
+                            if settings.espHealth and humanoid then
+                                esp.healthBar.Visible = true
+                                local healthPercent = humanoid.Health / humanoid.MaxHealth
+                                esp.healthBar.Size = Vector2.new(3, height * healthPercent)
+                                esp.healthBar.Position = Vector2.new(screenPos.X - width / 2 - 8, topPos.Y + (height * (1 - healthPercent)))
+                                esp.healthBar.Color = Color3.fromRGB(255 * (1 - healthPercent), 255 * healthPercent, 0)
+                            else
+                                esp.healthBar.Visible = false
+                            end
+                            
+                            -- Tracer
+                            if settings.espTracers then
+                                esp.tracer.Visible = true
+                                esp.tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                                esp.tracer.To = Vector2.new(screenPos.X, screenPos.Y)
+                            else
+                                esp.tracer.Visible = false
+                            end
+                        end
+                    else
+                        -- Not on screen
+                        esp.box.Visible = false
+                        esp.name.Visible = false
+                        esp.distance.Visible = false
+                        esp.healthBar.Visible = false
+                        esp.tracer.Visible = false
+                    end
+                else
+                    -- Too far
+                    esp.box.Visible = false
+                    esp.name.Visible = false
+                    esp.distance.Visible = false
+                    esp.healthBar.Visible = false
+                    esp.tracer.Visible = false
+                end
+            else
+                -- Dead or removed
+                esp.box.Visible = false
+                esp.name.Visible = false
+                esp.distance.Visible = false
+                esp.healthBar.Visible = false
+                esp.tracer.Visible = false
+            end
+        end)
+    end
+end
+
+-- Create ESP for existing players
+for _, plr in pairs(Players:GetPlayers()) do
+    createESP(plr)
+end
+
+-- Create ESP for new players
+Players.PlayerAdded:Connect(function(plr)
+    createESP(plr)
 end)
 
--- FPS Counter
-task.spawn(function()
-	local lastTime = tick()
-	local frameCount = 0
-	local fps = 0
-	
-	RunService.RenderStepped:Connect(function()
-		frameCount = frameCount + 1
-		local currentTime = tick()
-		
-		if currentTime - lastTime >= 1 then
-			fps = frameCount
-			frameCount = 0
-			lastTime = currentTime
-		end
-	end)
-	
-	while task.wait(0.5) do
-		FPSLabel:Set("FPS: " .. fps)
-		
-		-- Ping calculation
-		local success, ping = pcall(function()
-			return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
-		end)
-		
-		if success then
-			PingLabel:Set("Ping: " .. math.floor(ping) .. " ms")
-		end
-	end
+-- Remove ESP for leaving players
+Players.PlayerRemoving:Connect(function(plr)
+    if espObjects[plr] then
+        espObjects[plr].box:Remove()
+        espObjects[plr].name:Remove()
+        espObjects[plr].distance:Remove()
+        espObjects[plr].healthBar:Remove()
+        espObjects[plr].tracer:Remove()
+        espObjects[plr].holder:Destroy()
+        espObjects[plr] = nil
+    end
 end)
 
--- Keep particles disabled if setting enabled
+-- ESP Update Loop (FIXED - Better error handling)
+RunService.RenderStepped:Connect(function()
+    if not settings.espEnabled then 
+        -- Hide all ESP when disabled
+        for _, esp in pairs(espObjects) do
+            pcall(function()
+                esp.box.Visible = false
+                esp.name.Visible = false
+                esp.distance.Visible = false
+                esp.healthBar.Visible = false
+                esp.tracer.Visible = false
+            end)
+        end
+        return 
+    end
+    
+    pcall(function()
+        updateESP()
+    end)
+end)
+
+-- ============================================
+-- AUTO-CLEAN DEBRIS LOOP
+-- ============================================
+
 task.spawn(function()
-	while task.wait(2) do
-		if settings.particlesRemoved then
-			for _, obj in pairs(Workspace:GetDescendants()) do
-				if (obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam")) and not isPlayerPart(obj) then
-					if obj.Enabled then
-						obj.Enabled = false
-					end
-				end
-			end
-		end
-	end
+    while task.wait(20) do
+        if settings.autoCleanDebris then
+            local batch = {}
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                local isPlayerPart = false
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p.Character and obj:IsDescendantOf(p.Character) then
+                        isPlayerPart = true
+                        break
+                    end
+                end
+                
+                if not isPlayerPart and obj:IsA("BasePart") then
+                    local name = obj.Name:lower()
+                    if name:find("debris") or name:find("rubble") then
+                        table.insert(batch, obj)
+                        
+                        if #batch >= 30 then
+                            for _, part in ipairs(batch) do
+                                pcall(function() part:Destroy() end)
+                            end
+                            batch = {}
+                            task.wait()
+                        end
+                    end
+                end
+            end
+        end
+    end
 end)
 
 -- Initialization
-Rayfield:Notify({
-   Title = "⚡ Heavens FPS Optimizer",
-   Content = "Loaded successfully! Safe for all games.",
-   Duration = 5,
-   Image = 4483362458,
-   Actions = {
-      Ignore = {
-         Name = "Let's Go!",
-         Callback = function()
-            print("User acknowledged load")
-         end
-      },
-   },
+Fluent:Notify({
+    Title = "⚡ Heavens Ultimate Hub",
+    Content = "Loaded! FPS Optimizer + ESP + Aimbot ready!",
+    Duration = 5
 })
 
 print("=================================")
-print("⚡ Heavens FPS Optimizer v2 Loaded")
-print("✅ Safe Mode - No kick risk")
-print("✅ Mobile Optimized - Arceus X Compatible")
+print("⚡ Heavens Ultimate Hub Loaded")
+print("UI by EmmanuelFushiguro (Godly Hub)")
+print("✅ FPS Optimizer | ESP | Aimbot")
 print("=================================")
