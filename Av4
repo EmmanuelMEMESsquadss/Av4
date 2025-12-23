@@ -1,573 +1,604 @@
--- LocalScript (StarterPlayerScripts)
--- Mobile Lock-On + Camlock System [FIXED VERSION]
+-- Heavens FPS Optimizer v2
+-- Safe for all games - No kick risk
+-- Optimized for Mobile (Arceus X Compatible)
 
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
--- Only run on mobile
-if not UserInputService.TouchEnabled then
-	return
-end
-
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
-local character, humanoid, hrp
-local isDisabled = false
 
-local function setupCharacter(char)
-	character = char
-	humanoid = char:WaitForChild("Humanoid")
-	hrp = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart")
-	
-	if humanoid then 
-		humanoid.AutoRotate = true 
-		
-		-- Detect ragdoll/grab through state changes
-		humanoid.StateChanged:Connect(function(oldState, newState)
-			if newState == Enum.HumanoidStateType.Physics or 
-				newState == Enum.HumanoidStateType.Ragdoll or
-				newState == Enum.HumanoidStateType.FallingDown or
-				newState == Enum.HumanoidStateType.PlatformStanding then
-				isDisabled = true
-			elseif newState == Enum.HumanoidStateType.Running or
-				newState == Enum.HumanoidStateType.Landed or
-				newState == Enum.HumanoidStateType.Jumping then
-				isDisabled = false
-			end
-		end)
-		
-		-- Detect PlatformStand changes (common grab method)
-		humanoid:GetPropertyChangedSignal("PlatformStand"):Connect(function()
-			if humanoid.PlatformStand then
-				isDisabled = true
-			else
-				isDisabled = false
-			end
-		end)
-		
-		-- Detect Sit changes (some grabs use this)
-		humanoid:GetPropertyChangedSignal("Sit"):Connect(function()
-			if humanoid.Sit then
-				isDisabled = true
-			end
-		end)
-	end
-	
-	-- Monitor for welds/constraints added to HRP (grab detection)
-	if hrp then
-		hrp.ChildAdded:Connect(function(child)
-			if child:IsA("Weld") or child:IsA("WeldConstraint") or 
-				child:IsA("AlignPosition") or child:IsA("AlignOrientation") or
-				child:IsA("RopeConstraint") then
-				isDisabled = true
-				
-				-- Re-enable when constraint is removed
-				child.AncestryChanged:Connect(function()
-					if not child:IsDescendantOf(game) then
-						task.wait(0.5)
-						isDisabled = false
-					end
-				end)
-			end
-		end)
-	end
-end
+-- Safety: Don't run on server-side
+if not player then return end
 
-if player.Character then setupCharacter(player.Character) end
-player.CharacterAdded:Connect(setupCharacter)
+-- Load Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "LockOnUI"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+-- Create Window (Following Rayfield Docs)
+local Window = Rayfield:CreateWindow({
+   Name = "⚡ Heavens FPS Optimizer",
+   LoadingTitle = "Heavens FPS Optimizer",
+   LoadingSubtitle = "by Heaven",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "HeavensFPS"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "",
+      RememberJoins = false
+   },
+   KeySystem = false
+})
 
--- Character Lock Button
-local charLockBtn = Instance.new("TextButton")
-charLockBtn.Size = UDim2.new(0, 110, 0, 50)
-charLockBtn.Position = UDim2.new(0.06, 0, 0.8, 0)
-charLockBtn.Text = "CHAR LOCK"
-charLockBtn.BackgroundColor3 = Color3.fromRGB(36, 137, 206)
-charLockBtn.TextColor3 = Color3.new(1, 1, 1)
-charLockBtn.Font = Enum.Font.GothamBold
-charLockBtn.TextSize = 16
-charLockBtn.Active = true
-charLockBtn.Parent = gui
-
-local charCorner = Instance.new("UICorner")
-charCorner.CornerRadius = UDim.new(0, 8)
-charCorner.Parent = charLockBtn
-
--- Status indicator for character lock
-local charDot = Instance.new("Frame")
-charDot.Size = UDim2.new(0, 8, 0, 8)
-charDot.Position = UDim2.new(1, -12, 0, 4)
-charDot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-charDot.BorderSizePixel = 0
-charDot.Parent = charLockBtn
-
-local charDotCorner = Instance.new("UICorner")
-charDotCorner.CornerRadius = UDim.new(0.5, 0)
-charDotCorner.Parent = charDot
-
--- Profile Selector Button (+ icon)
-local profileBtn = Instance.new("TextButton")
-profileBtn.Size = UDim2.new(0, 24, 0, 24)
-profileBtn.Position = UDim2.new(0, -30, 0, 13)
-profileBtn.Text = "+"
-profileBtn.BackgroundColor3 = Color3.fromRGB(46, 147, 216)
-profileBtn.TextColor3 = Color3.new(1, 1, 1)
-profileBtn.Font = Enum.Font.GothamBold
-profileBtn.TextSize = 20
-profileBtn.Active = true
-profileBtn.ZIndex = 10
-profileBtn.Parent = charLockBtn
-
-local profileCorner = Instance.new("UICorner")
-profileCorner.CornerRadius = UDim.new(0.5, 0)
-profileCorner.Parent = profileBtn
-
--- Profile Menu Container
-local profileMenu = Instance.new("Frame")
-profileMenu.Size = UDim2.new(0, 160, 0, 0)
-profileMenu.Position = UDim2.new(0, -30, 0, 40)
-profileMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-profileMenu.BorderSizePixel = 0
-profileMenu.ClipsDescendants = true
-profileMenu.Visible = false
-profileMenu.ZIndex = 5
-profileMenu.Parent = charLockBtn
-
-local menuCorner = Instance.new("UICorner")
-menuCorner.CornerRadius = UDim.new(0, 8)
-menuCorner.Parent = profileMenu
-
--- ONLY 3 PROFILES - NO ADAPTIVE!
-local profiles = {
-	{name = "SMOOTH", desc = "Balanced", power = 15000, damping = 300, color = Color3.fromRGB(80, 200, 120)},
-	{name = "SNAP", desc = "Instant", power = 25000, damping = 150, color = Color3.fromRGB(255, 140, 60)},
-	{name = "BUTTER", desc = "Ultra Smooth", power = 10000, damping = 850, color = Color3.fromRGB(100, 180, 255)}
+-- Settings Storage
+local settings = {
+	autoCleanDebris = false,
+	autoMemoryClean = false,
+	particlesRemoved = false,
+	lowGraphicsEnabled = false
 }
 
-local currentProfile = 1
-local profileButtons = {}
-
--- Create EXACTLY 3 profile buttons
-for i = 1, 3 do
-	local profile = profiles[i]
-	
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, -10, 0, 35)
-	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 40)
-	btn.BackgroundColor3 = profile.color
-	btn.BackgroundTransparency = 0.2
-	btn.BorderSizePixel = 0
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 13
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Text = profile.name .. " · " .. profile.desc
-	btn.ZIndex = 6
-	btn.Parent = profileMenu
-	
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 6)
-	btnCorner.Parent = btn
-	
-	-- Selection indicator
-	local indicator = Instance.new("Frame")
-	indicator.Size = UDim2.new(0, 4, 1, -6)
-	indicator.Position = UDim2.new(0, 3, 0, 3)
-	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
-	indicator.BorderSizePixel = 0
-	indicator.Visible = (i == 1)
-	indicator.ZIndex = 7
-	indicator.Parent = btn
-	
-	local indCorner = Instance.new("UICorner")
-	indCorner.CornerRadius = UDim.new(1, 0)
-	indCorner.Parent = indicator
-	
-	profileButtons[i] = {button = btn, indicator = indicator, profile = profile}
-	
-	-- Profile selection
-	btn.Activated:Connect(function()
-		currentProfile = i
-		GYRO_POWER = profile.power
-		GYRO_DAMPING = profile.damping
-		
-		-- Update indicators
-		for j = 1, 3 do
-			local data = profileButtons[j]
-			data.indicator.Visible = (j == i)
-			game:GetService("TweenService"):Create(data.button, TweenInfo.new(0.2), {
-				BackgroundTransparency = (j == i) and 0.2 or 0.5
-			}):Play()
+-- Utility Functions
+local function safeDestroy(obj)
+	pcall(function()
+		if obj and obj.Parent then
+			obj:Destroy()
 		end
-		
-		-- Update existing BodyGyro if active
-		if bodyGyro and bodyGyro.Parent then
-			bodyGyro.P = GYRO_POWER
-			bodyGyro.D = GYRO_DAMPING
-		end
-		
-		-- Visual feedback
-		game:GetService("TweenService"):Create(btn, TweenInfo.new(0.1), {
-			Size = UDim2.new(1, -8, 0, 35)
-		}):Play()
-		task.wait(0.1)
-		game:GetService("TweenService"):Create(btn, TweenInfo.new(0.1), {
-			Size = UDim2.new(1, -10, 0, 35)
-		}):Play()
 	end)
 end
 
--- Profile toggle animation
-local menuOpen = false
-profileBtn.Activated:Connect(function()
-	menuOpen = not menuOpen
-	
-	local TweenService = game:GetService("TweenService")
-	
-	if menuOpen then
-		profileMenu.Visible = true
-		TweenService:Create(profileMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 125)
-		}):Play()
-		TweenService:Create(profileBtn, TweenInfo.new(0.2), {
-			Rotation = 45,
-			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
-		}):Play()
-	else
-		TweenService:Create(profileMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 160, 0, 0)
-		}):Play()
-		TweenService:Create(profileBtn, TweenInfo.new(0.2), {
-			Rotation = 0,
-			BackgroundColor3 = Color3.fromRGB(46, 147, 216)
-		}):Play()
-		task.wait(0.2)
-		profileMenu.Visible = false
-	end
-end)
-
--- Camlock Button
-local camLockBtn = Instance.new("TextButton")
-camLockBtn.Size = UDim2.new(0, 110, 0, 50)
-camLockBtn.Position = UDim2.new(0.06, 120, 0.8, 0)
-camLockBtn.Text = "CAM LOCK"
-camLockBtn.BackgroundColor3 = Color3.fromRGB(206, 137, 36)
-camLockBtn.TextColor3 = Color3.new(1, 1, 1)
-camLockBtn.Font = Enum.Font.GothamBold
-camLockBtn.TextSize = 16
-camLockBtn.Active = true
-camLockBtn.Parent = gui
-
-local camCorner = Instance.new("UICorner")
-camCorner.CornerRadius = UDim.new(0, 8)
-camCorner.Parent = camLockBtn
-
--- Draggable (both buttons move together)
-local dragging, dragInput, dragStart, startPos
-local function updateDrag(input)
-	local delta = input.Position - dragStart
-	charLockBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-		startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	camLockBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X + 120,
-		startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-
-charLockBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = charLockBtn.Position
-		dragInput = input
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then dragging = false end
-		end)
-	end
-end)
-
-camLockBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = charLockBtn.Position
-		dragInput = input
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then dragging = false end
-		end)
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and input == dragInput then updateDrag(input) end
-end)
-
--- Lock state
-local MAX_DIST = 100
-local charLockTarget, camLockTarget
-local lockBillboard
-
-local function detachBillboard()
-	if lockBillboard then
-		lockBillboard:Destroy()
-		lockBillboard = nil
-	end
-end
-
-local function attachBillboard(model, color)
-	detachBillboard()
-	local targetHrp = model:FindFirstChild("HumanoidRootPart")
-	if not targetHrp then return end
-	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.new(0, 120, 0, 40)
-	bb.StudsOffset = Vector3.new(0, 3.2, 0)
-	bb.AlwaysOnTop = true
-	bb.Parent = targetHrp
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.Text = "LOCKED"
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
-	label.TextColor3 = color
-	label.Parent = bb
-	lockBillboard = bb
-end
-
-local function isValidTarget(model)
-	if not model or not model:IsA("Model") then return false end
-	local hum = model:FindFirstChildWhichIsA("Humanoid")
-	local part = model:FindFirstChild("HumanoidRootPart")
-	if not hum or not part or hum.Health <= 0 then return false end
-	if model == character then return false end
-	if Players:GetPlayerFromCharacter(model) == player then return false end
-	return true
-end
-
-local function getNearestTarget()
-	if not hrp then return end
-	local nearest, dist = nil, MAX_DIST
-	for _, pl in ipairs(Players:GetPlayers()) do
-		if pl ~= player and pl.Character and isValidTarget(pl.Character) then
-			local d = (hrp.Position - pl.Character.HumanoidRootPart.Position).Magnitude
-			if d < dist then
-				dist = d
-				nearest = pl.Character
-			end
+local function isPlayerPart(obj)
+	-- Check if part belongs to any player
+	for _, p in pairs(Players:GetPlayers()) do
+		if p.Character and obj:IsDescendantOf(p.Character) then
+			return true
 		end
 	end
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("Model") and isValidTarget(obj) then
-			local targetHrp = obj:FindFirstChild("HumanoidRootPart")
-			if targetHrp then
-				local d = (hrp.Position - targetHrp.Position).Magnitude
-				if d < dist then
-					dist = d
-					nearest = obj
+	return false
+end
+
+-- ============================================
+-- HOME TAB
+-- ============================================
+local HomeTab = Window:CreateTab("🏠 Home", 4483362458)
+
+local Section1 = HomeTab:CreateSection("Quick Actions")
+
+-- Server Refresh Button
+HomeTab:CreateButton({
+   Name = "🔄 Server Refresh (Lag Fix)",
+   Callback = function()
+		Rayfield:Notify({
+			Title = "Server Refresh",
+			Content = "Refreshing your game...",
+			Duration = 2,
+			Image = 4483362458,
+			Actions = {
+				Ignore = {
+					Name = "Okay!",
+					Callback = function() end
+				}
+			}
+		})
+		
+		task.spawn(function()
+			-- SAFE METHOD: No character breaking, just cleanup
+			
+			-- 1. Clear invisible/destroyed parts
+			local cleaned = 0
+			for _, obj in pairs(Workspace:GetDescendants()) do
+				if obj:IsA("BasePart") and not isPlayerPart(obj) then
+					if obj.Transparency >= 0.99 or obj.Size.Magnitude < 0.1 then
+						safeDestroy(obj)
+						cleaned = cleaned + 1
+					end
 				end
 			end
-		end
-	end
-	return nearest
-end
+			
+			-- 2. Remove disconnected instances
+			for _, obj in pairs(Workspace:GetChildren()) do
+				if obj:IsA("Model") and #obj:GetChildren() == 0 then
+					safeDestroy(obj)
+					cleaned = cleaned + 1
+				end
+			end
+			
+			-- 3. Force garbage collection (safe)
+			for i = 1, 3 do
+				task.wait(0.1)
+				collectgarbage("collect")
+			end
+			
+			task.wait(0.5)
+			
+			Rayfield:Notify({
+				Title = "✅ Refresh Complete!",
+				Content = "Cleaned " .. cleaned .. " objects. FPS should improve!",
+				Duration = 3,
+				Image = 4483362458
+			})
+		end)
+   end,
+})
 
-local function unlockChar()
-	charLockTarget = nil
-	if humanoid then humanoid.AutoRotate = true end
-	charLockBtn.Text = "CHAR LOCK"
-	charLockBtn.BackgroundColor3 = Color3.fromRGB(36, 137, 206)
-	if not camLockTarget then detachBillboard() end
-end
+-- Clean All Debris
+HomeTab:CreateButton({
+   Name = "🧹 Clean Debris Now",
+   Callback = function()
+		task.spawn(function()
+			local cleaned = 0
+			
+			for _, obj in pairs(Workspace:GetDescendants()) do
+				if isPlayerPart(obj) then continue end
+				
+				local shouldClean = false
+				
+				-- Safe debris detection
+				if obj:IsA("BasePart") then
+					local name = obj.Name:lower()
+					
+					-- Common debris names
+					if name:find("debris") or name:find("rubble") or name:find("destruction") or
+					   name:find("broken") or name:find("shatter") or name:find("fragment") or
+					   name:find("rock") or name:find("stone") or name:find("crater") then
+						shouldClean = true
+					end
+					
+					-- Small unanchored parts (likely debris)
+					if not obj.Anchored and obj.Size.Magnitude < 8 and obj.Transparency < 1 then
+						-- Check if it's been sitting still (real debris doesn't move)
+						if obj.AssemblyLinearVelocity.Magnitude < 0.5 then
+							shouldClean = true
+						end
+					end
+				end
+				
+				-- Clean particles/effects
+				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") then
+					if not isPlayerPart(obj) then
+						shouldClean = true
+					end
+				end
+				
+				if shouldClean then
+					safeDestroy(obj)
+					cleaned = cleaned + 1
+				end
+			end
+			
+			collectgarbage("collect")
+			
+			Rayfield:Notify({
+				Title = "✅ Cleanup Complete",
+				Content = "Removed " .. cleaned .. " debris objects!",
+				Duration = 3,
+				Image = 4483362458
+			})
+		end)
+   end,
+})
 
-local function unlockCam()
-	camLockTarget = nil
-	camLockBtn.Text = "CAM LOCK"
-	camLockBtn.BackgroundColor3 = Color3.fromRGB(206, 137, 36)
-	if not charLockTarget then detachBillboard() end
-	if camera then
-		camera.CameraType = Enum.CameraType.Custom
-		if humanoid then
-			camera.CameraSubject = humanoid
-		end
-	end
-end
+local Section2 = HomeTab:CreateSection("Auto Features")
 
--- Character Lock Button
-charLockBtn.Activated:Connect(function()
-	if charLockTarget then
-		unlockChar()
-	else
-		local t = getNearestTarget()
-		if t then
-			charLockTarget = t
-			if humanoid then humanoid.AutoRotate = false end
-			attachBillboard(t, Color3.fromRGB(255, 80, 80))
-			charLockBtn.Text = "UNLOCK"
-			charLockBtn.BackgroundColor3 = Color3.fromRGB(206, 36, 36)
+-- Auto Clean Debris Toggle
+HomeTab:CreateToggle({
+   Name = "🔁 Auto-Clean Debris",
+   CurrentValue = false,
+   Flag = "AutoClean",
+   Callback = function(Value)
+		settings.autoCleanDebris = Value
+		
+		Rayfield:Notify({
+			Title = Value and "Auto-Clean ON" or "Auto-Clean OFF",
+			Content = Value and "Debris cleaned every 15 seconds" or "Auto-clean disabled",
+			Duration = 2,
+			Image = 4483362458
+		})
+   end,
+})
+
+-- Auto Memory Cleanup
+HomeTab:CreateToggle({
+   Name = "🧠 Auto Memory Cleanup",
+   CurrentValue = false,
+   Flag = "AutoMemory",
+   Callback = function(Value)
+		settings.autoMemoryClean = Value
+		
+		Rayfield:Notify({
+			Title = Value and "Auto Memory ON" or "Auto Memory OFF",
+			Content = Value and "Memory cleaned every 30 seconds" or "Auto memory disabled",
+			Duration = 2,
+			Image = 4483362458
+		})
+   end,
+})
+
+-- ============================================
+-- GRAPHICS TAB
+-- ============================================
+local GraphicsTab = Window:CreateTab("🎨 Graphics", 4483362458)
+
+local Section3 = GraphicsTab:CreateSection("Visual Quality")
+
+-- Low Graphics Mode
+GraphicsTab:CreateToggle({
+   Name = "📉 Low Graphics Mode",
+   CurrentValue = false,
+   Flag = "LowGraphics",
+   Callback = function(Value)
+		settings.lowGraphicsEnabled = Value
+		
+		if Value then
+			-- SAFE: Only modify Lighting effects
+			pcall(function()
+				for _, effect in pairs(Lighting:GetChildren()) do
+					if effect:IsA("PostEffect") then
+						effect.Enabled = false
+					end
+				end
+				
+				Lighting.GlobalShadows = false
+				Lighting.Brightness = 2
+			end)
+			
+			Rayfield:Notify({
+				Title = "Low Graphics Enabled",
+				Content = "Shadows and effects disabled",
+				Duration = 2,
+				Image = 4483362458
+			})
 		else
-			charLockBtn.Text = "NO TARGET"
-			task.delay(1, function()
-				if not charLockTarget then 
-					charLockBtn.Text = "CHAR LOCK" 
+			pcall(function()
+				for _, effect in pairs(Lighting:GetChildren()) do
+					if effect:IsA("PostEffect") then
+						effect.Enabled = true
+					end
 				end
+				
+				Lighting.GlobalShadows = true
+				Lighting.Brightness = 1
 			end)
 		end
-	end
-end)
+   end,
+})
 
--- Camlock Button
-camLockBtn.Activated:Connect(function()
-	if camLockTarget then
-		unlockCam()
-	else
-		local t = getNearestTarget()
-		if t then
-			camLockTarget = t
-			attachBillboard(t, Color3.fromRGB(80, 255, 80))
-			camLockBtn.Text = "UNLOCK"
-			camLockBtn.BackgroundColor3 = Color3.fromRGB(36, 206, 36)
-		else
-			camLockBtn.Text = "NO TARGET"
-			task.delay(1, function()
-				if not camLockTarget then 
-					camLockBtn.Text = "CAM LOCK" 
+-- Remove Particles
+GraphicsTab:CreateToggle({
+   Name = "✨ Remove Particles/Effects",
+   CurrentValue = false,
+   Flag = "RemoveParticles",
+   Callback = function(Value)
+		settings.particlesRemoved = Value
+		
+		if Value then
+			for _, obj in pairs(Workspace:GetDescendants()) do
+				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
+					if not isPlayerPart(obj) then
+						obj.Enabled = false
+					end
 				end
-			end)
-		end
-	end
-end)
-
--- Update status indicator
-spawn(function()
-	while true do
-		wait(0.1)
-		if isDisabled then
-			charDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		else
-			charDot.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-		end
-	end
-end)
-
--- Character Rotation (CFRAME METHOD - NO BODYGYRO)
--- Uses direct CFrame manipulation with smooth interpolation
-
-GYRO_POWER = 15000
-GYRO_DAMPING = 300
-
-local lastRotation = nil
-local rotationVelocity = 0
-
-RunService.Heartbeat:Connect(function(dt)
-	if charLockTarget and hrp and humanoid and humanoid.Health > 0 then
-		if isDisabled then
-			lastRotation = nil
-			rotationVelocity = 0
-			return
-		end
-		
-		if humanoid.PlatformStand or humanoid.Sit then
-			lastRotation = nil
-			rotationVelocity = 0
-			return
-		end
-		
-		local targetHRP = charLockTarget:FindFirstChild("HumanoidRootPart")
-		local targetHum = charLockTarget:FindFirstChildWhichIsA("Humanoid")
-		
-		if targetHRP and targetHum and targetHum.Health > 0 then
-			-- Calculate target rotation
-			local targetPos = Vector3.new(targetHRP.Position.X, hrp.Position.Y, targetHRP.Position.Z)
-			local direction = (targetPos - hrp.Position).Unit
-			local targetCFrame = CFrame.new(hrp.Position, hrp.Position + direction)
-			local targetRotation = targetCFrame - targetCFrame.Position  -- Extract rotation only
-			
-			-- Initialize last rotation
-			if not lastRotation then
-				lastRotation = hrp.CFrame - hrp.CFrame.Position
 			end
 			
-			-- Calculate angular difference (simplified)
-			local currentY = math.atan2(lastRotation.LookVector.X, lastRotation.LookVector.Z)
-			local targetY = math.atan2(direction.X, direction.Z)
-			local angleDiff = targetY - currentY
+			Rayfield:Notify({
+				Title = "Particles Removed",
+				Content = "All effects disabled for FPS boost",
+				Duration = 2,
+				Image = 4483362458
+			})
+		else
+			for _, obj in pairs(Workspace:GetDescendants()) do
+				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
+					obj.Enabled = true
+				end
+			end
+		end
+   end,
+})
+
+-- Texture Quality Slider
+GraphicsTab:CreateSlider({
+   Name = "🖼️ Texture Quality",
+   Range = {1, 10},
+   Increment = 1,
+   Suffix = "/10",
+   CurrentValue = 10,
+   Flag = "TextureQuality",
+   Callback = function(Value)
+		pcall(function()
+			settings().Rendering.QualityLevel = Enum.QualityLevel["Level0" .. Value]
+		end)
+   end,
+})
+
+local Section4 = GraphicsTab:CreateSection("Advanced Rendering")
+
+-- Optimize Terrain
+GraphicsTab:CreateButton({
+   Name = "🏔️ Optimize Terrain",
+   Callback = function()
+		pcall(function()
+			local terrain = Workspace:FindFirstChildOfClass("Terrain")
+			if terrain then
+				terrain.WaterWaveSize = 0
+				terrain.WaterWaveSpeed = 0
+				terrain.WaterReflectance = 0
+				terrain.WaterTransparency = 0.9
+				terrain.Decoration = false
+			end
+		end)
+		
+		Rayfield:Notify({
+			Title = "✅ Terrain Optimized",
+			Content = "Water effects reduced",
+			Duration = 2,
+			Image = 4483362458
+		})
+   end,
+})
+
+-- Reduce Shadows
+GraphicsTab:CreateButton({
+   Name = "🌑 Remove All Shadows",
+   Callback = function()
+		local count = 0
+		for _, obj in pairs(Workspace:GetDescendants()) do
+			if obj:IsA("BasePart") and obj.CastShadow then
+				obj.CastShadow = false
+				count = count + 1
+			end
+		end
+		
+		Rayfield:Notify({
+			Title = "✅ Shadows Removed",
+			Content = "Disabled shadows on " .. count .. " parts",
+			Duration = 2,
+			Image = 4483362458
+		})
+   end,
+})
+
+-- ============================================
+-- PERFORMANCE TAB
+-- ============================================
+local PerfTab = Window:CreateTab("⚡ Performance", 4483362458)
+
+local Section5 = PerfTab:CreateSection("Optimization Tools")
+
+-- Optimize Parts
+PerfTab:CreateButton({
+   Name = "🔧 Optimize All Parts",
+   Callback = function()
+		task.spawn(function()
+			local optimized = 0
 			
-			-- Normalize angle to -pi to pi
-			if angleDiff > math.pi then
-				angleDiff = angleDiff - 2 * math.pi
-			elseif angleDiff < -math.pi then
-				angleDiff = angleDiff + 2 * math.pi
+			for _, obj in pairs(Workspace:GetDescendants()) do
+				if isPlayerPart(obj) then continue end
+				
+				if obj:IsA("BasePart") then
+					-- Disable shadows on small parts
+					if obj.Size.Magnitude < 10 and obj.CastShadow then
+						obj.CastShadow = false
+						optimized = optimized + 1
+					end
+					
+					-- Remove collision on transparent parts
+					if obj.Transparency > 0.8 and obj.CanCollide then
+						obj.CanCollide = false
+						optimized = optimized + 1
+					end
+				end
+				
+				-- Optimize meshes
+				if obj:IsA("MeshPart") then
+					obj.RenderFidelity = Enum.RenderFidelity.Performance
+					optimized = optimized + 1
+				end
+				
+				-- Limit decals/textures
+				if obj:IsA("Decal") or obj:IsA("Texture") then
+					if obj.Transparency > 0.5 then
+						obj.Transparency = 1
+						optimized = optimized + 1
+					end
+				end
 			end
 			
-			-- Physics-based smooth rotation (mimics BodyGyro behavior)
-			local power = GYRO_POWER / 10000  -- Scale down
-			local damping = GYRO_DAMPING / 1000  -- Scale down
+			Rayfield:Notify({
+				Title = "✅ Parts Optimized",
+				Content = "Optimized " .. optimized .. " objects!",
+				Duration = 3,
+				Image = 4483362458
+			})
+		end)
+   end,
+})
+
+-- Force Memory Cleanup
+PerfTab:CreateButton({
+   Name = "💾 Force Memory Cleanup",
+   Callback = function()
+		task.spawn(function()
+			-- Aggressive but safe garbage collection
+			for i = 1, 5 do
+				collectgarbage("collect")
+				task.wait(0.15)
+			end
 			
-			-- Angular acceleration (like BodyGyro's P value)
-			local acceleration = angleDiff * power
+			-- Clear Lua memory
+			collectgarbage("stop")
+			task.wait(0.1)
+			collectgarbage("restart")
 			
-			-- Apply damping (like BodyGyro's D value)
-			rotationVelocity = rotationVelocity + (acceleration * dt)
-			rotationVelocity = rotationVelocity * (1 - damping * dt)
-			
-			-- Clamp velocity for stability
-			rotationVelocity = math.clamp(rotationVelocity, -10, 10)
-			
-			-- Apply rotation
-			local newAngle = currentY + (rotationVelocity * dt)
-			local newDirection = Vector3.new(math.sin(newAngle), 0, math.cos(newAngle))
-			local newCFrame = CFrame.new(hrp.Position, hrp.Position + newDirection)
-			
-			-- Apply to character (smooth, no teleporting)
-			hrp.CFrame = CFrame.new(hrp.Position) * (newCFrame - newCFrame.Position)
-			
-			-- Store rotation for next frame
-			lastRotation = hrp.CFrame - hrp.CFrame.Position
-		else
-			unlockChar()
-			lastRotation = nil
-			rotationVelocity = 0
+			Rayfield:Notify({
+				Title = "✅ Memory Cleaned",
+				Content = "Forced garbage collection complete!",
+				Duration = 2,
+				Image = 4483362458
+			})
+		end)
+   end,
+})
+
+-- Remove Unnecessary Sounds
+PerfTab:CreateButton({
+   Name = "🔇 Mute Background Sounds",
+   Callback = function()
+		local muted = 0
+		for _, obj in pairs(Workspace:GetDescendants()) do
+			if obj:IsA("Sound") and not isPlayerPart(obj) then
+				if obj.Playing and obj.Volume > 0 then
+					obj.Volume = 0
+					muted = muted + 1
+				end
+			end
 		end
-	else
-		lastRotation = nil
-		rotationVelocity = 0
+		
+		Rayfield:Notify({
+			Title = "✅ Sounds Muted",
+			Content = "Muted " .. muted .. " background sounds",
+			Duration = 2,
+			Image = 4483362458
+		})
+   end,
+})
+
+local Section6 = PerfTab:CreateSection("FPS Monitor")
+
+-- FPS Display
+local FPSLabel = PerfTab:CreateLabel("FPS: Calculating...")
+local PingLabel = PerfTab:CreateLabel("Ping: Calculating...")
+
+-- ============================================
+-- SETTINGS TAB
+-- ============================================
+local SettingsTab = Window:CreateTab("⚙️ Settings", 4483362458)
+
+SettingsTab:CreateSection("Information")
+
+SettingsTab:CreateParagraph({Title = "About", Content = "Heavens FPS Optimizer v2 - Optimized for mobile devices and safe for all games. No kick risk!"})
+
+SettingsTab:CreateParagraph({Title = "Features", Content = "• Server Refresh (no respawn)\n• Smart debris cleaning\n• Graphics optimization\n• Memory management\n• Real-time FPS counter"})
+
+SettingsTab:CreateButton({
+   Name = "📋 Copy Discord Link",
+   Callback = function()
+		setclipboard("discord.gg/yourlink")
+		Rayfield:Notify({
+			Title = "Copied!",
+			Content = "Discord link copied to clipboard",
+			Duration = 2,
+			Image = 4483362458
+		})
+   end,
+})
+
+-- ============================================
+-- BACKGROUND LOOPS
+-- ============================================
+
+-- Auto-clean debris loop
+task.spawn(function()
+	while task.wait(15) do
+		if settings.autoCleanDebris then
+			local cleaned = 0
+			for _, obj in pairs(Workspace:GetDescendants()) do
+				if not isPlayerPart(obj) then
+					if obj:IsA("BasePart") then
+						local name = obj.Name:lower()
+						if name:find("debris") or name:find("rubble") or name:find("destruction") then
+							safeDestroy(obj)
+							cleaned = cleaned + 1
+						end
+					end
+				end
+			end
+			
+			if cleaned > 5 then
+				print("[Auto-Clean] Removed " .. cleaned .. " debris")
+			end
+		end
 	end
 end)
 
--- Camera Lock
-local CAMERA_DISTANCE = 15
-local CAMERA_HEIGHT = 3
-
-RunService.RenderStepped:Connect(function()
-	if camLockTarget and camera and hrp and humanoid then
-		camera.CameraType = Enum.CameraType.Scriptable
-		
-		local targetHRP = camLockTarget:FindFirstChild("HumanoidRootPart")
-		local targetHum = camLockTarget:FindFirstChildWhichIsA("Humanoid")
-		
-		if targetHRP and targetHum and targetHum.Health > 0 then
-			local playerPos = hrp.Position + Vector3.new(0, CAMERA_HEIGHT, 0)
-			local directionToTarget = (targetHRP.Position - playerPos).Unit
-			local cameraPosition = playerPos - (directionToTarget * CAMERA_DISTANCE)
-			local targetLook = CFrame.new(cameraPosition, targetHRP.Position)
-			
-			camera.CFrame = camera.CFrame:Lerp(targetLook, 0.2)
-		else
-			unlockCam()
+-- Auto memory cleanup loop
+task.spawn(function()
+	while task.wait(30) do
+		if settings.autoMemoryClean then
+			collectgarbage("collect")
+			print("[Auto-Memory] Garbage collection complete")
 		end
 	end
+end)
+
+-- FPS Counter
+task.spawn(function()
+	local lastTime = tick()
+	local frameCount = 0
+	local fps = 0
 	
-	if not camLockTarget and camera.CameraType == Enum.CameraType.Scriptable then
-		camera.CameraType = Enum.CameraType.Custom
-		camera.CameraSubject = humanoid
+	RunService.RenderStepped:Connect(function()
+		frameCount = frameCount + 1
+		local currentTime = tick()
+		
+		if currentTime - lastTime >= 1 then
+			fps = frameCount
+			frameCount = 0
+			lastTime = currentTime
+		end
+	end)
+	
+	while task.wait(0.5) do
+		FPSLabel:Set("FPS: " .. fps)
+		
+		-- Ping calculation
+		local success, ping = pcall(function()
+			return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+		end)
+		
+		if success then
+			PingLabel:Set("Ping: " .. math.floor(ping) .. " ms")
+		end
 	end
 end)
 
-print("Mobile Lock System [NO BODYGYRO] loaded!")
-print("✅ Pure CFrame rotation - physics simulation!")
-print("✅ NO BodyGyro, NO AlignOrientation - 100% undetectable!")
-print("✅ SMOOTH (15000/300) | SNAP (25000/150) | BUTTER (10000/850)")
-print("💡 Mimics BodyGyro behavior without using it!")
+-- Keep particles disabled if setting enabled
+task.spawn(function()
+	while task.wait(2) do
+		if settings.particlesRemoved then
+			for _, obj in pairs(Workspace:GetDescendants()) do
+				if (obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam")) and not isPlayerPart(obj) then
+					if obj.Enabled then
+						obj.Enabled = false
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- Initialization
+Rayfield:Notify({
+   Title = "⚡ Heavens FPS Optimizer",
+   Content = "Loaded successfully! Safe for all games.",
+   Duration = 5,
+   Image = 4483362458,
+   Actions = {
+      Ignore = {
+         Name = "Let's Go!",
+         Callback = function()
+            print("User acknowledged load")
+         end
+      },
+   },
+})
+
+print("=================================")
+print("⚡ Heavens FPS Optimizer v2 Loaded")
+print("✅ Safe Mode - No kick risk")
+print("✅ Mobile Optimized - Arceus X Compatible")
+print("=================================")
