@@ -67,7 +67,7 @@ miniLabel.Parent = miniBtn
 
 -- Main Container (ENLARGED)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 160, 0, 298)
+mainFrame.Size = UDim2.new(0, 160, 0, 330)
 mainFrame.Position = UDim2.new(0.85, -160, 0.25, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
@@ -283,10 +283,25 @@ local advancedCorner = Instance.new("UICorner")
 advancedCorner.CornerRadius = UDim.new(0, 8)
 advancedCorner.Parent = advancedBtn
 
+-- ESP Toggle Button (NEW)
+local espBtn = Instance.new("TextButton")
+espBtn.Size = UDim2.new(1, -20, 0, 32)
+espBtn.Position = UDim2.new(0, 10, 0, 128)
+espBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
+espBtn.Text = "👁️ ESP: OFF"
+espBtn.Font = Enum.Font.GothamBold
+espBtn.TextSize = 12
+espBtn.TextColor3 = Color3.new(1, 1, 1)
+espBtn.Parent = mainFrame
+
+local espCorner = Instance.new("UICorner")
+espCorner.CornerRadius = UDim.new(0, 8)
+espCorner.Parent = espBtn
+
 -- Smoothness Label
 local smoothLabel = Instance.new("TextLabel")
 smoothLabel.Size = UDim2.new(1, -20, 0, 20)
-smoothLabel.Position = UDim2.new(0, 10, 0, 130)
+smoothLabel.Position = UDim2.new(0, 10, 0, 170)
 smoothLabel.BackgroundTransparency = 1
 smoothLabel.Text = "Smoothness: 0.25"
 smoothLabel.Font = Enum.Font.Gotham
@@ -298,7 +313,7 @@ smoothLabel.Parent = mainFrame
 -- Smoothness Slider
 local sliderFrame = Instance.new("Frame")
 sliderFrame.Size = UDim2.new(1, -20, 0, 8)
-sliderFrame.Position = UDim2.new(0, 10, 0, 155)
+sliderFrame.Position = UDim2.new(0, 10, 0, 195)
 sliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 sliderFrame.BorderSizePixel = 0
 sliderFrame.Parent = mainFrame
@@ -331,7 +346,7 @@ knobCorner.Parent = sliderKnob
 -- Wall Detection Toggle
 local wallCheckBtn = Instance.new("TextButton")
 wallCheckBtn.Size = UDim2.new(0.48, 0, 0, 30)
-wallCheckBtn.Position = UDim2.new(0, 10, 0, 175)
+wallCheckBtn.Position = UDim2.new(0, 10, 0, 215)
 wallCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 wallCheckBtn.Text = "Wall: ON"
 wallCheckBtn.Font = Enum.Font.GothamBold
@@ -346,7 +361,7 @@ wallCorner.Parent = wallCheckBtn
 -- Team Check Toggle
 local teamCheckBtn = Instance.new("TextButton")
 teamCheckBtn.Size = UDim2.new(0.48, 0, 0, 30)
-teamCheckBtn.Position = UDim2.new(0.52, 0, 0, 175)
+teamCheckBtn.Position = UDim2.new(0.52, 0, 0, 215)
 teamCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 teamCheckBtn.Text = "Team: ON"
 teamCheckBtn.Font = Enum.Font.GothamBold
@@ -361,7 +376,7 @@ teamCorner.Parent = teamCheckBtn
 -- Distance Label
 local distLabel = Instance.new("TextLabel")
 distLabel.Size = UDim2.new(1, -20, 0, 20)
-distLabel.Position = UDim2.new(0, 10, 0, 215)
+distLabel.Position = UDim2.new(0, 10, 0, 255)
 distLabel.BackgroundTransparency = 1
 distLabel.Text = "Max Distance: 300"
 distLabel.Font = Enum.Font.Gotham
@@ -373,7 +388,7 @@ distLabel.Parent = mainFrame
 -- Distance Slider
 local distSliderFrame = Instance.new("Frame")
 distSliderFrame.Size = UDim2.new(1, -20, 0, 8)
-distSliderFrame.Position = UDim2.new(0, 10, 0, 240)
+distSliderFrame.Position = UDim2.new(0, 10, 0, 280)
 distSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 distSliderFrame.BorderSizePixel = 0
 distSliderFrame.Parent = mainFrame
@@ -406,7 +421,7 @@ distKnobCorner.Parent = distSliderKnob
 -- Info Label
 local infoLabel = Instance.new("TextLabel")
 infoLabel.Size = UDim2.new(1, -20, 0, 35)
-infoLabel.Position = UDim2.new(0, 10, 0, 263)
+infoLabel.Position = UDim2.new(0, 10, 0, 295)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Text = "🎯 Body Part: HEAD\nDrag to reposition"
 infoLabel.Font = Enum.Font.Gotham
@@ -420,6 +435,10 @@ local smoothness = 0.25
 local wallCheckEnabled = true
 local teamCheckEnabled = true
 local maxDistance = 300
+local espEnabled = false
+
+-- ESP Storage
+local espHighlights = {}
 
 -- Velocity prediction storage (for advanced aim)
 local targetVelocities = {}
@@ -518,7 +537,7 @@ miniBtn.Activated:Connect(function()
 		
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
 		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 298)
+			Size = UDim2.new(0, 160, 0, 330)
 		}):Play()
 	end
 end)
@@ -625,9 +644,177 @@ advancedBtn.Activated:Connect(function()
 	else
 		advancedBtn.Text = "🎯 Adv Aim: OFF"
 		advancedBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
-		targetVelocities = {} -- Clear velocity data
+		targetVelocities = {}
 	end
 end)
+
+-- ESP Functions
+local function createESP(targetPlayer)
+	if targetPlayer == player then return end
+	if espHighlights[targetPlayer] then return end
+	
+	local char = targetPlayer.Character
+	if not char then return end
+	
+	-- Create Highlight
+	local highlight = Instance.new("Highlight")
+	highlight.FillColor = Color3.fromRGB(255, 80, 80)
+	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0
+	highlight.Parent = char
+	
+	-- Create Health Billboard
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local hum = char:FindFirstChildWhichIsA("Humanoid")
+	
+	if hrp and hum then
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.new(0, 100, 0, 40)
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.AlwaysOnTop = true
+		billboard.Parent = hrp
+		
+		-- Player Name
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Size = UDim2.new(1, 0, 0, 18)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.Text = targetPlayer.Name
+		nameLabel.TextColor3 = Color3.new(1, 1, 1)
+		nameLabel.TextSize = 12
+		nameLabel.Font = Enum.Font.GothamBold
+		nameLabel.TextStrokeTransparency = 0.5
+		nameLabel.Parent = billboard
+		
+		-- Health Bar Background
+		local healthBg = Instance.new("Frame")
+		healthBg.Size = UDim2.new(1, 0, 0, 8)
+		healthBg.Position = UDim2.new(0, 0, 0, 20)
+		healthBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		healthBg.BorderSizePixel = 0
+		healthBg.Parent = billboard
+		
+		local bgCorner = Instance.new("UICorner")
+		bgCorner.CornerRadius = UDim.new(0.5, 0)
+		bgCorner.Parent = healthBg
+		
+		-- Health Bar Fill
+		local healthBar = Instance.new("Frame")
+		healthBar.Size = UDim2.new(hum.Health / hum.MaxHealth, 0, 1, 0)
+		healthBar.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+		healthBar.BorderSizePixel = 0
+		healthBar.Parent = healthBg
+		
+		local fillCorner = Instance.new("UICorner")
+		fillCorner.CornerRadius = UDim.new(0.5, 0)
+		fillCorner.Parent = healthBar
+		
+		-- Health Text
+		local healthText = Instance.new("TextLabel")
+		healthText.Size = UDim2.new(1, 0, 0, 10)
+		healthText.Position = UDim2.new(0, 0, 0, 30)
+		healthText.BackgroundTransparency = 1
+		healthText.Text = math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth)
+		healthText.TextColor3 = Color3.new(1, 1, 1)
+		healthText.TextSize = 10
+		healthText.Font = Enum.Font.Gotham
+		healthText.TextStrokeTransparency = 0.5
+		healthText.Parent = billboard
+		
+		-- Update health in real-time
+		hum.HealthChanged:Connect(function(health)
+			if health > 0 then
+				local healthPercent = health / hum.MaxHealth
+				healthBar.Size = UDim2.new(healthPercent, 0, 1, 0)
+				healthText.Text = math.floor(health) .. "/" .. math.floor(hum.MaxHealth)
+				
+				-- Color based on health
+				if healthPercent > 0.6 then
+					healthBar.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+				elseif healthPercent > 0.3 then
+					healthBar.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+				else
+					healthBar.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+				end
+			end
+		end)
+		
+		espHighlights[targetPlayer] = {highlight = highlight, billboard = billboard}
+	else
+		espHighlights[targetPlayer] = {highlight = highlight, billboard = nil}
+	end
+end
+
+local function removeESP(targetPlayer)
+	if espHighlights[targetPlayer] then
+		if espHighlights[targetPlayer].highlight then
+			espHighlights[targetPlayer].highlight:Destroy()
+		end
+		if espHighlights[targetPlayer].billboard then
+			espHighlights[targetPlayer].billboard:Destroy()
+		end
+		espHighlights[targetPlayer] = nil
+	end
+end
+
+local function clearAllESP()
+	for targetPlayer, _ in pairs(espHighlights) do
+		removeESP(targetPlayer)
+	end
+end
+
+-- ESP Toggle
+espBtn.Activated:Connect(function()
+	espEnabled = not espEnabled
+	
+	if espEnabled then
+		espBtn.Text = "👁️ ESP: ON"
+		espBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 255)
+		
+		-- Create ESP for all players
+		for _, targetPlayer in ipairs(Players:GetPlayers()) do
+			if targetPlayer ~= player and targetPlayer.Character then
+				createESP(targetPlayer)
+			end
+		end
+	else
+		espBtn.Text = "👁️ ESP: OFF"
+		espBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
+		clearAllESP()
+	end
+end)
+
+-- ESP Auto-update (handles new players and respawns)
+Players.PlayerAdded:Connect(function(targetPlayer)
+	if espEnabled and targetPlayer ~= player then
+		targetPlayer.CharacterAdded:Connect(function(char)
+			task.wait(0.5)
+			if espEnabled then
+				createESP(targetPlayer)
+			end
+		end)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(targetPlayer)
+	removeESP(targetPlayer)
+end)
+
+-- Monitor existing players for respawns
+for _, targetPlayer in ipairs(Players:GetPlayers()) do
+	if targetPlayer ~= player then
+		targetPlayer.CharacterAdded:Connect(function(char)
+			task.wait(0.5)
+			if espEnabled then
+				createESP(targetPlayer)
+			end
+		end)
+		
+		targetPlayer.CharacterRemoving:Connect(function()
+			removeESP(targetPlayer)
+		end)
+	end
+end
 
 -- Main Toggle
 toggleBtn.Activated:Connect(function()
@@ -823,8 +1010,10 @@ print("Enhanced Aim Assist [ULTIMATE EDITION]")
 print("========================================")
 print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
 print("✅ Advanced Aim (Velocity Prediction)")
+print("✅ Optimized ESP (Highlight + Health Bar)")
 print("✅ Wall Detection + Team Check")
 print("✅ Adjustable Distance + Smoothness")
 print("💡 [+] button for body parts | Drag to move")
 print("🎯 Advanced Aim = Auto-tracks moving enemies!")
+print("👁️ ESP = Shows all enemies with health!")
 print("========================================")
