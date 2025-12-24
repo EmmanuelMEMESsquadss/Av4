@@ -648,7 +648,7 @@ advancedBtn.Activated:Connect(function()
 	end
 end)
 
--- ESP Functions
+-- ESP Functions (CLEAN - Highlight Only)
 local function createESP(targetPlayer)
 	if targetPlayer == player then return end
 	if espHighlights[targetPlayer] then return end
@@ -656,7 +656,7 @@ local function createESP(targetPlayer)
 	local char = targetPlayer.Character
 	if not char then return end
 	
-	-- Create Highlight
+	-- Create Highlight Only
 	local highlight = Instance.new("Highlight")
 	highlight.FillColor = Color3.fromRGB(255, 80, 80)
 	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
@@ -664,95 +664,12 @@ local function createESP(targetPlayer)
 	highlight.OutlineTransparency = 0
 	highlight.Parent = char
 	
-	-- Create Health Billboard
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	local hum = char:FindFirstChildWhichIsA("Humanoid")
-	
-	if hrp and hum then
-		local billboard = Instance.new("BillboardGui")
-		billboard.Size = UDim2.new(0, 100, 0, 40)
-		billboard.StudsOffset = Vector3.new(0, 3, 0)
-		billboard.AlwaysOnTop = true
-		billboard.Parent = hrp
-		
-		-- Player Name
-		local nameLabel = Instance.new("TextLabel")
-		nameLabel.Size = UDim2.new(1, 0, 0, 18)
-		nameLabel.BackgroundTransparency = 1
-		nameLabel.Text = targetPlayer.Name
-		nameLabel.TextColor3 = Color3.new(1, 1, 1)
-		nameLabel.TextSize = 12
-		nameLabel.Font = Enum.Font.GothamBold
-		nameLabel.TextStrokeTransparency = 0.5
-		nameLabel.Parent = billboard
-		
-		-- Health Bar Background
-		local healthBg = Instance.new("Frame")
-		healthBg.Size = UDim2.new(1, 0, 0, 8)
-		healthBg.Position = UDim2.new(0, 0, 0, 20)
-		healthBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-		healthBg.BorderSizePixel = 0
-		healthBg.Parent = billboard
-		
-		local bgCorner = Instance.new("UICorner")
-		bgCorner.CornerRadius = UDim.new(0.5, 0)
-		bgCorner.Parent = healthBg
-		
-		-- Health Bar Fill
-		local healthBar = Instance.new("Frame")
-		healthBar.Size = UDim2.new(hum.Health / hum.MaxHealth, 0, 1, 0)
-		healthBar.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-		healthBar.BorderSizePixel = 0
-		healthBar.Parent = healthBg
-		
-		local fillCorner = Instance.new("UICorner")
-		fillCorner.CornerRadius = UDim.new(0.5, 0)
-		fillCorner.Parent = healthBar
-		
-		-- Health Text
-		local healthText = Instance.new("TextLabel")
-		healthText.Size = UDim2.new(1, 0, 0, 10)
-		healthText.Position = UDim2.new(0, 0, 0, 30)
-		healthText.BackgroundTransparency = 1
-		healthText.Text = math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth)
-		healthText.TextColor3 = Color3.new(1, 1, 1)
-		healthText.TextSize = 10
-		healthText.Font = Enum.Font.Gotham
-		healthText.TextStrokeTransparency = 0.5
-		healthText.Parent = billboard
-		
-		-- Update health in real-time
-		hum.HealthChanged:Connect(function(health)
-			if health > 0 then
-				local healthPercent = health / hum.MaxHealth
-				healthBar.Size = UDim2.new(healthPercent, 0, 1, 0)
-				healthText.Text = math.floor(health) .. "/" .. math.floor(hum.MaxHealth)
-				
-				-- Color based on health
-				if healthPercent > 0.6 then
-					healthBar.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-				elseif healthPercent > 0.3 then
-					healthBar.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
-				else
-					healthBar.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-				end
-			end
-		end)
-		
-		espHighlights[targetPlayer] = {highlight = highlight, billboard = billboard}
-	else
-		espHighlights[targetPlayer] = {highlight = highlight, billboard = nil}
-	end
+	espHighlights[targetPlayer] = highlight
 end
 
 local function removeESP(targetPlayer)
 	if espHighlights[targetPlayer] then
-		if espHighlights[targetPlayer].highlight then
-			espHighlights[targetPlayer].highlight:Destroy()
-		end
-		if espHighlights[targetPlayer].billboard then
-			espHighlights[targetPlayer].billboard:Destroy()
-		end
+		espHighlights[targetPlayer]:Destroy()
 		espHighlights[targetPlayer] = nil
 	end
 end
@@ -1010,10 +927,10 @@ print("Enhanced Aim Assist [ULTIMATE EDITION]")
 print("========================================")
 print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
 print("✅ Advanced Aim (Velocity Prediction)")
-print("✅ Optimized ESP (Highlight + Health Bar)")
+print("✅ Clean ESP (Highlight Only)")
 print("✅ Wall Detection + Team Check")
 print("✅ Adjustable Distance + Smoothness")
 print("💡 [+] button for body parts | Drag to move")
 print("🎯 Advanced Aim = Auto-tracks moving enemies!")
-print("👁️ ESP = Shows all enemies with health!")
+print("👁️ ESP = Simple red highlight on enemies!")
 print("========================================")
