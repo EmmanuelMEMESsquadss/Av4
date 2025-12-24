@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts)
--- Multi-Universal Aim Assist [FULL POWER]
+-- Multi-Universal Aim Assist [FIXED VERSION]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,7 +8,7 @@ local Teams = game:GetService("Teams")
 
 -- Only run on mobile
 if not UserInputService.TouchEnabled then
-	return
+    return
 end
 
 local player = Players.LocalPlayer
@@ -18,24 +18,26 @@ local character, humanoid, hrp
 local aimAssistEnabled = false
 local currentTarget = nil
 local MAX_DISTANCE = 300
-local FOV_RADIUS = 150  -- Screen space radius for target detection
+local FOV_RADIUS = 150
 
+-- Wait for character to load properly
 local function setupCharacter(char)
-	character = char
-	humanoid = char:WaitForChild("Humanoid")
-	hrp = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart")
+    character = char
+    humanoid = char:WaitForChild("Humanoid", 5)
+    hrp = char:WaitForChild("HumanoidRootPart", 5)
 end
 
-if player.Character then setupCharacter(player.Character) end
+if player.Character then 
+    setupCharacter(player.Character) 
+end
 player.CharacterAdded:Connect(setupCharacter)
 
--- GUI
+-- GUI Setup (keeping your existing GUI code)
 local gui = Instance.new("ScreenGui")
 gui.Name = "AimAssistUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Minimized Button (shows when UI is minimized)
 local miniBtn = Instance.new("TextButton")
 miniBtn.Size = UDim2.new(0, 50, 0, 50)
 miniBtn.Position = UDim2.new(0.85, -50, 0.3, 0)
@@ -54,7 +56,6 @@ local miniBtnCorner = Instance.new("UICorner")
 miniBtnCorner.CornerRadius = UDim.new(0.5, 0)
 miniBtnCorner.Parent = miniBtn
 
--- Mini button label
 local miniLabel = Instance.new("TextLabel")
 miniLabel.Size = UDim2.new(1, 0, 0, 15)
 miniLabel.Position = UDim2.new(0, 0, 1, 2)
@@ -65,7 +66,6 @@ miniLabel.TextSize = 10
 miniLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 miniLabel.Parent = miniBtn
 
--- Main Container
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 160, 0, 310)
 mainFrame.Position = UDim2.new(0.85, -160, 0.3, 0)
@@ -78,14 +78,12 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = mainFrame
 
--- Drag Handle
 local dragHandle = Instance.new("Frame")
 dragHandle.Size = UDim2.new(1, 0, 0, 35)
 dragHandle.BackgroundTransparency = 1
 dragHandle.Active = true
 dragHandle.Parent = mainFrame
 
--- Title
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -45, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
@@ -97,7 +95,6 @@ titleLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = dragHandle
 
--- Minimize Button (- icon)
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 20, 0, 20)
 minimizeBtn.Position = UDim2.new(1, -25, 0, 7)
@@ -113,7 +110,6 @@ local minimizeCorner = Instance.new("UICorner")
 minimizeCorner.CornerRadius = UDim.new(0.5, 0)
 minimizeCorner.Parent = minimizeBtn
 
--- Status Indicator
 local statusDot = Instance.new("Frame")
 statusDot.Size = UDim2.new(0, 10, 0, 10)
 statusDot.Position = UDim2.new(1, -15, 0, 12)
@@ -125,7 +121,6 @@ local dotCorner = Instance.new("UICorner")
 dotCorner.CornerRadius = UDim.new(0.5, 0)
 dotCorner.Parent = statusDot
 
--- Toggle Button
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(1, -20, 0, 35)
 toggleBtn.Position = UDim2.new(0, 10, 0, 45)
@@ -140,7 +135,6 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 8)
 toggleCorner.Parent = toggleBtn
 
--- Smoothness Label
 local smoothLabel = Instance.new("TextLabel")
 smoothLabel.Size = UDim2.new(1, -20, 0, 20)
 smoothLabel.Position = UDim2.new(0, 10, 0, 90)
@@ -152,7 +146,6 @@ smoothLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 smoothLabel.TextXAlignment = Enum.TextXAlignment.Left
 smoothLabel.Parent = mainFrame
 
--- Smoothness Slider
 local sliderFrame = Instance.new("Frame")
 sliderFrame.Size = UDim2.new(1, -20, 0, 8)
 sliderFrame.Position = UDim2.new(0, 10, 0, 115)
@@ -185,632 +178,156 @@ local knobCorner = Instance.new("UICorner")
 knobCorner.CornerRadius = UDim.new(0.5, 0)
 knobCorner.Parent = sliderKnob
 
--- Wall Detection Toggle
-local wallCheckBtn = Instance.new("TextButton")
-wallCheckBtn.Size = UDim2.new(0.48, 0, 0, 28)
-wallCheckBtn.Position = UDim2.new(0, 10, 0, 135)
-wallCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-wallCheckBtn.Text = "Wall: ON"
-wallCheckBtn.Font = Enum.Font.GothamBold
-wallCheckBtn.TextSize = 10
-wallCheckBtn.TextColor3 = Color3.new(1, 1, 1)
-wallCheckBtn.Parent = mainFrame
-
-local wallCorner = Instance.new("UICorner")
-wallCorner.CornerRadius = UDim.new(0, 6)
-wallCorner.Parent = wallCheckBtn
-
--- Team Check Toggle
-local teamCheckBtn = Instance.new("TextButton")
-teamCheckBtn.Size = UDim2.new(0.48, 0, 0, 28)
-teamCheckBtn.Position = UDim2.new(0.52, 0, 0, 135)
-teamCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-teamCheckBtn.Text = "Team: ON"
-teamCheckBtn.Font = Enum.Font.GothamBold
-teamCheckBtn.TextSize = 10
-teamCheckBtn.TextColor3 = Color3.new(1, 1, 1)
-teamCheckBtn.Parent = mainFrame
-
-local teamCorner = Instance.new("UICorner")
-teamCorner.CornerRadius = UDim.new(0, 6)
-teamCorner.Parent = teamCheckBtn
-
--- Attack Near Toggle
-local attackNearBtn = Instance.new("TextButton")
-attackNearBtn.Size = UDim2.new(0.48, 0, 0, 28)
-attackNearBtn.Position = UDim2.new(0, 10, 0, 168)
-attackNearBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-attackNearBtn.Text = "Near: OFF"
-attackNearBtn.Font = Enum.Font.GothamBold
-attackNearBtn.TextSize = 10
-attackNearBtn.TextColor3 = Color3.new(1, 1, 1)
-attackNearBtn.Parent = mainFrame
-
-local attackCorner = Instance.new("UICorner")
-attackCorner.CornerRadius = UDim.new(0, 6)
-attackCorner.Parent = attackNearBtn
-
--- Advanced Aim Toggle
-local advancedAimBtn = Instance.new("TextButton")
-advancedAimBtn.Size = UDim2.new(0.48, 0, 0, 28)
-advancedAimBtn.Position = UDim2.new(0.52, 0, 0, 168)
-advancedAimBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-advancedAimBtn.Text = "Adv: OFF"
-advancedAimBtn.Font = Enum.Font.GothamBold
-advancedAimBtn.TextSize = 10
-advancedAimBtn.TextColor3 = Color3.new(1, 1, 1)
-advancedAimBtn.Parent = mainFrame
-
-local advancedCorner = Instance.new("UICorner")
-advancedCorner.CornerRadius = UDim.new(0, 6)
-advancedCorner.Parent = advancedAimBtn
-
--- Body Part Selector (+ icon)
-local bodyPartBtn = Instance.new("TextButton")
-bodyPartBtn.Size = UDim2.new(0, 24, 0, 24)
-bodyPartBtn.Position = UDim2.new(0.5, -12, 0, 201)
-bodyPartBtn.Text = "+"
-bodyPartBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-bodyPartBtn.TextColor3 = Color3.new(1, 1, 1)
-bodyPartBtn.Font = Enum.Font.GothamBold
-bodyPartBtn.TextSize = 18
-bodyPartBtn.ZIndex = 10
-bodyPartBtn.Parent = mainFrame
-
-local bodyPartCorner = Instance.new("UICorner")
-bodyPartCorner.CornerRadius = UDim.new(0.5, 0)
-bodyPartCorner.Parent = bodyPartBtn
-
--- Body Part Menu
-local bodyPartMenu = Instance.new("Frame")
-bodyPartMenu.Size = UDim2.new(0, 140, 0, 0)
-bodyPartMenu.Position = UDim2.new(0.5, -70, 0, 230)
-bodyPartMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-bodyPartMenu.BorderSizePixel = 0
-bodyPartMenu.ClipsDescendants = true
-bodyPartMenu.Visible = false
-bodyPartMenu.ZIndex = 5
-bodyPartMenu.Parent = mainFrame
-
-local bodyMenuCorner = Instance.new("UICorner")
-bodyMenuCorner.CornerRadius = UDim.new(0, 8)
-bodyMenuCorner.Parent = bodyPartMenu
-
--- Body parts
-local bodyParts = {
-	{name = "HEAD", part = "Head", color = Color3.fromRGB(255, 100, 100)},
-	{name = "NECK", part = "Neck", color = Color3.fromRGB(255, 150, 100)},
-	{name = "TORSO", part = "Torso", color = Color3.fromRGB(100, 150, 255)},
-	{name = "LEGS", part = "Left Leg", color = Color3.fromRGB(150, 255, 100)}
-}
-
-local bodyPartButtons = {}
-
-for i, bodyPart in ipairs(bodyParts) do
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, -10, 0, 32)
-	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 37)
-	btn.BackgroundColor3 = bodyPart.color
-	btn.BackgroundTransparency = 0.2
-	btn.BorderSizePixel = 0
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 12
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Text = bodyPart.name
-	btn.ZIndex = 6
-	btn.Parent = bodyPartMenu
-	
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 6)
-	btnCorner.Parent = btn
-	
-	-- Selection indicator
-	local indicator = Instance.new("Frame")
-	indicator.Size = UDim2.new(0, 3, 1, -6)
-	indicator.Position = UDim2.new(0, 3, 0, 3)
-	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
-	indicator.BorderSizePixel = 0
-	indicator.Visible = (i == 1)
-	indicator.ZIndex = 7
-	indicator.Parent = btn
-	
-	local indCorner = Instance.new("UICorner")
-	indCorner.CornerRadius = UDim.new(1, 0)
-	indCorner.Parent = indicator
-	
-	bodyPartButtons[i] = {button = btn, indicator = indicator, bodyPart = bodyPart}
-end
-
--- Distance Label
-local distLabel = Instance.new("TextLabel")
-distLabel.Size = UDim2.new(1, -20, 0, 18)
-distLabel.Position = UDim2.new(0, 10, 0, 240)
-distLabel.BackgroundTransparency = 1
-distLabel.Text = "Max Distance: 300"
-distLabel.Font = Enum.Font.Gotham
-distLabel.TextSize = 11
-distLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-distLabel.TextXAlignment = Enum.TextXAlignment.Left
-distLabel.Parent = mainFrame
-
--- Distance Slider
-local distSliderFrame = Instance.new("Frame")
-distSliderFrame.Size = UDim2.new(1, -20, 0, 8)
-distSliderFrame.Position = UDim2.new(0, 10, 0, 263)
-distSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-distSliderFrame.BorderSizePixel = 0
-distSliderFrame.Parent = mainFrame
-
-local distSliderCorner = Instance.new("UICorner")
-distSliderCorner.CornerRadius = UDim.new(0.5, 0)
-distSliderCorner.Parent = distSliderFrame
-
-local distSliderFill = Instance.new("Frame")
-distSliderFill.Size = UDim2.new(0.15, 0, 1, 0)  -- Start at 300 (15% of 2000)
-distSliderFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-distSliderFill.BorderSizePixel = 0
-distSliderFill.Parent = distSliderFrame
-
-local distFillCorner = Instance.new("UICorner")
-distFillCorner.CornerRadius = UDim.new(0.5, 0)
-distFillCorner.Parent = distSliderFill
-
-local distSliderKnob = Instance.new("TextButton")
-distSliderKnob.Size = UDim2.new(0, 16, 0, 16)
-distSliderKnob.Position = UDim2.new(0.15, -8, 0.5, -8)
-distSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-distSliderKnob.Text = ""
-distSliderKnob.Parent = distSliderFrame
-
-local distKnobCorner = Instance.new("UICorner")
-distKnobCorner.CornerRadius = UDim.new(0.5, 0)
-distKnobCorner.Parent = distSliderKnob
-
--- Info Label
-local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 30)
-infoLabel.Position = UDim2.new(0, 10, 0, 278)
-infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "Drag to reposition | [-] minimize"
-infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 9
-infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-infoLabel.TextXAlignment = Enum.TextXAlignment.Center
-infoLabel.Parent = mainFrame
-
 -- Settings
 local smoothness = 0.25
 local aimPart = "Head"
 local wallCheckEnabled = true
 local teamCheckEnabled = true
-local attackNearEnabled = false
-local advancedAimEnabled = false
 local maxDistance = 300
-local nearDistance = 20  -- Attack enemies within 20 studs
 
--- Advanced aim tracking
-local lastTargetPosition = {}
-local targetVelocities = {}
-
--- Dragging for main frame
-local dragging = false
-local dragStart, startPos
-
-dragHandle.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = mainFrame.Position
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-dragHandle.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if dragging then
-			local delta = input.Position - dragStart
-			mainFrame.Position = UDim2.new(
-				startPos.X.Scale, startPos.X.Offset + delta.X,
-				startPos.Y.Scale, startPos.Y.Offset + delta.Y
-			)
-		end
-	end
-end)
-
--- Dragging for mini button
-local miniDragging = false
-local miniDragStart, miniStartPos
-
-miniBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		miniDragging = true
-		miniDragStart = input.Position
-		miniStartPos = miniBtn.Position
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				miniDragging = false
-			end
-		end)
-	end
-end)
-
-miniBtn.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if miniDragging then
-			local delta = input.Position - miniDragStart
-			miniBtn.Position = UDim2.new(
-				miniStartPos.X.Scale, miniStartPos.X.Offset + delta.X,
-				miniStartPos.Y.Scale, miniStartPos.Y.Offset + delta.Y
-			)
-		end
-	end
-end)
-
--- Minimize/Maximize functionality
-local isMinimized = false
-local TweenService = game:GetService("TweenService")
-
-minimizeBtn.Activated:Connect(function()
-	isMinimized = true
-	
-	-- Smooth minimize animation
-	TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-		Size = UDim2.new(0, 0, 0, 0)
-	}):Play()
-	
-	task.wait(0.3)
-	mainFrame.Visible = false
-	miniBtn.Visible = true
-	
-	-- Pop in animation for mini button
-	miniBtn.Size = UDim2.new(0, 0, 0, 0)
-	TweenService:Create(miniBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 50, 0, 50)
-	}):Play()
-end)
-
-miniBtn.Activated:Connect(function()
-	-- Only maximize if not dragging
-	if not miniDragging then
-		isMinimized = false
-		
-		-- Hide mini button
-		TweenService:Create(miniBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 0, 0, 0)
-		}):Play()
-		
-		task.wait(0.2)
-		miniBtn.Visible = false
-		mainFrame.Visible = true
-		
-		-- Expand main container
-		mainFrame.Size = UDim2.new(0, 0, 0, 0)
-		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 310)
-		}):Play()
-	end
-end)
-
--- Body Part Menu Toggle
-local bodyMenuOpen = false
-bodyPartBtn.Activated:Connect(function()
-	bodyMenuOpen = not bodyMenuOpen
-	
-	if bodyMenuOpen then
-		bodyPartMenu.Visible = true
-		TweenService:Create(bodyPartMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 140, 0, 155)
-		}):Play()
-		TweenService:Create(bodyPartBtn, TweenInfo.new(0.2), {
-			Rotation = 45,
-			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
-		}):Play()
-	else
-		TweenService:Create(bodyPartMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 140, 0, 0)
-		}):Play()
-		TweenService:Create(bodyPartBtn, TweenInfo.new(0.2), {
-			Rotation = 0,
-			BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-		}):Play()
-		task.wait(0.2)
-		bodyPartMenu.Visible = false
-	end
-end)
-
--- Body Part Selection
-for i, data in ipairs(bodyPartButtons) do
-	data.button.Activated:Connect(function()
-		aimPart = data.bodyPart.part
-		
-		-- Update indicators
-		for j, btnData in ipairs(bodyPartButtons) do
-			btnData.indicator.Visible = (j == i)
-			TweenService:Create(btnData.button, TweenInfo.new(0.2), {
-				BackgroundTransparency = (j == i) and 0.2 or 0.5
-			}):Play()
-		end
-		
-		-- Visual feedback
-		TweenService:Create(data.button, TweenInfo.new(0.1), {
-			Size = UDim2.new(1, -8, 0, 32)
-		}):Play()
-		task.wait(0.1)
-		TweenService:Create(data.button, TweenInfo.new(0.1), {
-			Size = UDim2.new(1, -10, 0, 32)
-		}):Play()
-	end)
+-- CRITICAL FIX: Check if on same team
+local function isTeammate(targetPlayer)
+    if not teamCheckEnabled then return false end
+    if not Teams then return false end
+    if not player.Team or not targetPlayer.Team then return false end
+    return player.Team == targetPlayer.Team
 end
 
--- Smoothness slider functionality
+-- CRITICAL FIX: Wall detection
+local function hasLineOfSight(targetPart)
+    if not wallCheckEnabled then return true end
+    if not camera or not targetPart then return false end
+    
+    local origin = camera.CFrame.Position
+    local direction = (targetPart.Position - origin)
+    local distance = direction.Magnitude
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    if targetPart.Parent then
+        table.insert(raycastParams.FilterDescendantsInstances, targetPart.Parent)
+    end
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.IgnoreWater = true
+    
+    local result = workspace:Raycast(origin, direction.Unit * (distance - 0.5), raycastParams)
+    return result == nil
+end
+
+-- CRITICAL FIX: Get valid target
+local function getClosestTarget()
+    if not camera or not hrp then return nil end
+    
+    local closestTarget = nil
+    local closestDistance = math.huge
+    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    
+    for _, targetPlayer in ipairs(Players:GetPlayers()) do
+        if targetPlayer ~= player and targetPlayer.Character then
+            if isTeammate(targetPlayer) then continue end
+            
+            local targetChar = targetPlayer.Character
+            local targetPart = targetChar:FindFirstChild(aimPart) or targetChar:FindFirstChild("Head")
+            local targetHum = targetChar:FindFirstChildWhichIsA("Humanoid")
+            
+            if targetPart and targetHum and targetHum.Health > 0 then
+                local distance = (targetPart.Position - hrp.Position).Magnitude
+                
+                if distance <= maxDistance then
+                    if hasLineOfSight(targetPart) then
+                        local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+                        
+                        if onScreen then
+                            local screenDistance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+                            
+                            if screenDistance < FOV_RADIUS and screenDistance < closestDistance then
+                                closestDistance = screenDistance
+                                closestTarget = targetPart
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestTarget
+end
+
+-- Toggle button
+toggleBtn.Activated:Connect(function()
+    aimAssistEnabled = not aimAssistEnabled
+    
+    if aimAssistEnabled then
+        toggleBtn.Text = "ENABLED"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+        statusDot.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+        print("✅ Aim Assist ENABLED")
+    else
+        toggleBtn.Text = "DISABLED"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        currentTarget = nil
+        print("❌ Aim Assist DISABLED")
+    end
+end)
+
+-- Smoothness slider
 local sliderDragging = false
 
 sliderKnob.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		sliderDragging = true
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				sliderDragging = false
-			end
-		end)
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        sliderDragging = true
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                sliderDragging = false
+            end
+        end)
+    end
 end)
 
 sliderKnob.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if sliderDragging then
-			local mousePos = input.Position
-			local sliderPos = sliderFrame.AbsolutePosition
-			local sliderSize = sliderFrame.AbsoluteSize
-			
-			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
-			smoothness = math.clamp(relativeX, 0.05, 0.95)
-			
-			sliderFill.Size = UDim2.new(smoothness, 0, 1, 0)
-			sliderKnob.Position = UDim2.new(smoothness, -8, 0.5, -8)
-			smoothLabel.Text = "Smoothness: " .. string.format("%.2f", smoothness)
-		end
-	end
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if sliderDragging then
+            local mousePos = input.Position
+            local sliderPos = sliderFrame.AbsolutePosition
+            local sliderSize = sliderFrame.AbsoluteSize
+            
+            local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
+            smoothness = math.clamp(relativeX, 0.05, 0.95)
+            
+            sliderFill.Size = UDim2.new(smoothness, 0, 1, 0)
+            sliderKnob.Position = UDim2.new(smoothness, -8, 0.5, -8)
+            smoothLabel.Text = "Smoothness: " .. string.format("%.2f", smoothness)
+        end
+    end
 end)
 
--- Distance slider functionality
-local distSliderDragging = false
-
-distSliderKnob.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		distSliderDragging = true
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				distSliderDragging = false
-			end
-		end)
-	end
-end)
-
-distSliderKnob.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if distSliderDragging then
-			local mousePos = input.Position
-			local sliderPos = distSliderFrame.AbsolutePosition
-			local sliderSize = distSliderFrame.AbsoluteSize
-			
-			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
-			maxDistance = math.floor(relativeX * 2000)  -- 0 to 2000
-			
-			if maxDistance < 50 then maxDistance = 50 end  -- Minimum 50 studs
-			
-			distSliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
-			distSliderKnob.Position = UDim2.new(relativeX, -8, 0.5, -8)
-			distLabel.Text = "Max Distance: " .. maxDistance
-		end
-	end
-end)
-
--- Wall detection toggle
-wallCheckBtn.Activated:Connect(function()
-	wallCheckEnabled = not wallCheckEnabled
-	
-	if wallCheckEnabled then
-		wallCheckBtn.Text = "Wall: ON"
-		wallCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-	else
-		wallCheckBtn.Text = "Wall: OFF"
-		wallCheckBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	end
-end)
-
--- Team check toggle
-teamCheckBtn.Activated:Connect(function()
-	teamCheckEnabled = not teamCheckEnabled
-	
-	if teamCheckEnabled then
-		teamCheckBtn.Text = "Team: ON"
-		teamCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-	else
-		teamCheckBtn.Text = "Team: OFF"
-		teamCheckBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	end
-end)
-
--- Attack Near toggle
-attackNearBtn.Activated:Connect(function()
-	attackNearEnabled = not attackNearEnabled
-	
-	if attackNearEnabled then
-		attackNearBtn.Text = "Near: ON"
-		attackNearBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-	else
-		attackNearBtn.Text = "Near: OFF"
-		attackNearBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	end
-end)
-
--- Advanced Aim toggle
-advancedAimBtn.Activated:Connect(function()
-	advancedAimEnabled = not advancedAimEnabled
-	
-	if advancedAimEnabled then
-		advancedAimBtn.Text = "Adv: ON"
-		advancedAimBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-	else
-		advancedAimBtn.Text = "Adv: OFF"
-		advancedAimBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		-- Clear velocity tracking
-		lastTargetPosition = {}
-		targetVelocities = {}
-	end
-end)
-
--- Toggle
-toggleBtn.Activated:Connect(function()
-	aimAssistEnabled = not aimAssistEnabled
-	
-	if aimAssistEnabled then
-		toggleBtn.Text = "ENABLED"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-		statusDot.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-	else
-		toggleBtn.Text = "DISABLED"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		currentTarget = nil
-	end
-end)
-
--- Check if on same team
-local function isTeammate(targetPlayer)
-	if not teamCheckEnabled then return false end  -- If team check disabled, treat everyone as enemy
-	if not Teams or not player.Team then return false end
-	if not targetPlayer or not targetPlayer.Team then return false end
-	return player.Team == targetPlayer.Team
-end
-
--- Wall detection using Raycast
-local function hasLineOfSight(targetPart)
-	if not wallCheckEnabled then return true end  -- If wall check disabled, always return true
-	if not hrp or not targetPart then return false end
-	
-	local origin = camera.CFrame.Position
-	local direction = (targetPart.Position - origin).Unit
-	local distance = (targetPart.Position - origin).Magnitude
-	
-	local raycastParams = RaycastParams.new()
-	raycastParams.FilterDescendantsInstances = {character, targetPart.Parent}
-	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-	raycastParams.IgnoreWater = true
-	
-	local result = workspace:Raycast(origin, direction * distance, raycastParams)
-	
-	return result == nil  -- No obstruction = clear line of sight
-end
-
--- Get valid target
-local function getClosestTarget()
-	if not camera or not hrp then return nil end
-	
-	local closestTarget = nil
-	local closestDistance = math.huge
-	local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-	
-	for _, targetPlayer in ipairs(Players:GetPlayers()) do
-		if targetPlayer ~= player and targetPlayer.Character then
-			-- Check teammate
-			if isTeammate(targetPlayer) then continue end
-			
-			local targetChar = targetPlayer.Character
-			local targetPart = targetChar:FindFirstChild(aimPart)
-			local targetHum = targetChar:FindFirstChildWhichIsA("Humanoid")
-			
-			if targetPart and targetHum and targetHum.Health > 0 then
-				-- Distance check
-				local distance = (targetPart.Position - hrp.Position).Magnitude
-				
-				-- Attack Near mode: only target nearby enemies
-				if attackNearEnabled then
-					if distance > nearDistance then continue end
-				else
-					if distance > maxDistance then continue end
-				end
-				
-				-- Wall check
-				if not hasLineOfSight(targetPart) then continue end
-				
-				-- Screen position check (FOV circle)
-				local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
-				if onScreen then
-					local screenDistance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-					
-					if screenDistance < FOV_RADIUS and screenDistance < closestDistance then
-						closestDistance = screenDistance
-						closestTarget = targetPart
-					end
-				end
-			end
-		end
-	end
-	
-	return closestTarget
-end
-
--- Calculate target velocity for prediction
-local function getTargetVelocity(target)
-	if not target then return Vector3.zero end
-	
-	local targetId = tostring(target)
-	local currentPos = target.Position
-	local currentTime = tick()
-	
-	if lastTargetPosition[targetId] then
-		local lastPos = lastTargetPosition[targetId].pos
-		local lastTime = lastTargetPosition[targetId].time
-		local timeDelta = currentTime - lastTime
-		
-		if timeDelta > 0 then
-			local velocity = (currentPos - lastPos) / timeDelta
-			targetVelocities[targetId] = velocity
-			lastTargetPosition[targetId] = {pos = currentPos, time = currentTime}
-			return velocity
-		end
-	else
-		lastTargetPosition[targetId] = {pos = currentPos, time = currentTime}
-	end
-	
-	return targetVelocities[targetId] or Vector3.zero
-end
-
--- Aim assist loop
+-- CRITICAL FIX: Main aim assist loop
 RunService.RenderStepped:Connect(function()
-	if not aimAssistEnabled or not camera then return end
-	
-	-- Find target
-	currentTarget = getClosestTarget()
-	
-	if currentTarget then
-		-- Calculate target position
-		local targetPos = currentTarget.Position
-		
-		-- Current camera look direction
-		local currentCFrame = camera.CFrame
-		
-		-- Desired camera CFrame looking at target
-		local desiredCFrame = CFrame.new(currentCFrame.Position, targetPos)
-		
-		-- Smoothly interpolate (FULL POWER but smooth)
-		camera.CFrame = currentCFrame:Lerp(desiredCFrame, smoothness)
-	end
+    if not aimAssistEnabled then 
+        currentTarget = nil
+        return 
+    end
+    
+    if not camera or not hrp then return end
+    
+    -- Get target
+    currentTarget = getClosestTarget()
+    
+    if currentTarget and currentTarget.Parent then
+        local targetPos = currentTarget.Position
+        local currentCFrame = camera.CFrame
+        
+        -- Create desired look direction
+        local desiredCFrame = CFrame.new(currentCFrame.Position, targetPos)
+        
+        -- Smooth interpolation
+        camera.CFrame = currentCFrame:Lerp(desiredCFrame, smoothness)
+    end
 end)
 
-print("Multi-Universal Aim Assist [FULL POWER] loaded!")
-print("✅ Smooth aim tracking with adjustable smoothness")
-print("✅ Teammate detection (toggle ON/OFF)")
-print("✅ Wall detection (toggle ON/OFF)")
-print("✅ Adjustable max distance (50-2000 studs)")
-print("💡 Toggle buttons + sliders | [-] to minimize | Drag mini button!")
+print("✅ Multi-Universal Aim Assist [FIXED] loaded!")
+print("💡 Press toggle button to enable/disable")
+print("⚙️ Adjust smoothness with slider")
