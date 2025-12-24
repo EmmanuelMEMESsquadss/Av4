@@ -67,7 +67,7 @@ miniLabel.Parent = miniBtn
 
 -- Main Container
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 160, 0, 240)
+mainFrame.Size = UDim2.new(0, 160, 0, 310)
 mainFrame.Position = UDim2.new(0.85, -160, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
@@ -187,12 +187,12 @@ knobCorner.Parent = sliderKnob
 
 -- Wall Detection Toggle
 local wallCheckBtn = Instance.new("TextButton")
-wallCheckBtn.Size = UDim2.new(0.48, 0, 0, 30)
+wallCheckBtn.Size = UDim2.new(0.48, 0, 0, 28)
 wallCheckBtn.Position = UDim2.new(0, 10, 0, 135)
 wallCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 wallCheckBtn.Text = "Wall: ON"
 wallCheckBtn.Font = Enum.Font.GothamBold
-wallCheckBtn.TextSize = 11
+wallCheckBtn.TextSize = 10
 wallCheckBtn.TextColor3 = Color3.new(1, 1, 1)
 wallCheckBtn.Parent = mainFrame
 
@@ -202,12 +202,12 @@ wallCorner.Parent = wallCheckBtn
 
 -- Team Check Toggle
 local teamCheckBtn = Instance.new("TextButton")
-teamCheckBtn.Size = UDim2.new(0.48, 0, 0, 30)
+teamCheckBtn.Size = UDim2.new(0.48, 0, 0, 28)
 teamCheckBtn.Position = UDim2.new(0.52, 0, 0, 135)
 teamCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 teamCheckBtn.Text = "Team: ON"
 teamCheckBtn.Font = Enum.Font.GothamBold
-teamCheckBtn.TextSize = 11
+teamCheckBtn.TextSize = 10
 teamCheckBtn.TextColor3 = Color3.new(1, 1, 1)
 teamCheckBtn.Parent = mainFrame
 
@@ -215,14 +215,120 @@ local teamCorner = Instance.new("UICorner")
 teamCorner.CornerRadius = UDim.new(0, 6)
 teamCorner.Parent = teamCheckBtn
 
+-- Attack Near Toggle
+local attackNearBtn = Instance.new("TextButton")
+attackNearBtn.Size = UDim2.new(0.48, 0, 0, 28)
+attackNearBtn.Position = UDim2.new(0, 10, 0, 168)
+attackNearBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+attackNearBtn.Text = "Near: OFF"
+attackNearBtn.Font = Enum.Font.GothamBold
+attackNearBtn.TextSize = 10
+attackNearBtn.TextColor3 = Color3.new(1, 1, 1)
+attackNearBtn.Parent = mainFrame
+
+local attackCorner = Instance.new("UICorner")
+attackCorner.CornerRadius = UDim.new(0, 6)
+attackCorner.Parent = attackNearBtn
+
+-- Advanced Aim Toggle
+local advancedAimBtn = Instance.new("TextButton")
+advancedAimBtn.Size = UDim2.new(0.48, 0, 0, 28)
+advancedAimBtn.Position = UDim2.new(0.52, 0, 0, 168)
+advancedAimBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+advancedAimBtn.Text = "Adv: OFF"
+advancedAimBtn.Font = Enum.Font.GothamBold
+advancedAimBtn.TextSize = 10
+advancedAimBtn.TextColor3 = Color3.new(1, 1, 1)
+advancedAimBtn.Parent = mainFrame
+
+local advancedCorner = Instance.new("UICorner")
+advancedCorner.CornerRadius = UDim.new(0, 6)
+advancedCorner.Parent = advancedAimBtn
+
+-- Body Part Selector (+ icon)
+local bodyPartBtn = Instance.new("TextButton")
+bodyPartBtn.Size = UDim2.new(0, 24, 0, 24)
+bodyPartBtn.Position = UDim2.new(0.5, -12, 0, 201)
+bodyPartBtn.Text = "+"
+bodyPartBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+bodyPartBtn.TextColor3 = Color3.new(1, 1, 1)
+bodyPartBtn.Font = Enum.Font.GothamBold
+bodyPartBtn.TextSize = 18
+bodyPartBtn.ZIndex = 10
+bodyPartBtn.Parent = mainFrame
+
+local bodyPartCorner = Instance.new("UICorner")
+bodyPartCorner.CornerRadius = UDim.new(0.5, 0)
+bodyPartCorner.Parent = bodyPartBtn
+
+-- Body Part Menu
+local bodyPartMenu = Instance.new("Frame")
+bodyPartMenu.Size = UDim2.new(0, 140, 0, 0)
+bodyPartMenu.Position = UDim2.new(0.5, -70, 0, 230)
+bodyPartMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+bodyPartMenu.BorderSizePixel = 0
+bodyPartMenu.ClipsDescendants = true
+bodyPartMenu.Visible = false
+bodyPartMenu.ZIndex = 5
+bodyPartMenu.Parent = mainFrame
+
+local bodyMenuCorner = Instance.new("UICorner")
+bodyMenuCorner.CornerRadius = UDim.new(0, 8)
+bodyMenuCorner.Parent = bodyPartMenu
+
+-- Body parts
+local bodyParts = {
+	{name = "HEAD", part = "Head", color = Color3.fromRGB(255, 100, 100)},
+	{name = "NECK", part = "Neck", color = Color3.fromRGB(255, 150, 100)},
+	{name = "TORSO", part = "Torso", color = Color3.fromRGB(100, 150, 255)},
+	{name = "LEGS", part = "Left Leg", color = Color3.fromRGB(150, 255, 100)}
+}
+
+local bodyPartButtons = {}
+
+for i, bodyPart in ipairs(bodyParts) do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 32)
+	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 37)
+	btn.BackgroundColor3 = bodyPart.color
+	btn.BackgroundTransparency = 0.2
+	btn.BorderSizePixel = 0
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 12
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Text = bodyPart.name
+	btn.ZIndex = 6
+	btn.Parent = bodyPartMenu
+	
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = btn
+	
+	-- Selection indicator
+	local indicator = Instance.new("Frame")
+	indicator.Size = UDim2.new(0, 3, 1, -6)
+	indicator.Position = UDim2.new(0, 3, 0, 3)
+	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
+	indicator.BorderSizePixel = 0
+	indicator.Visible = (i == 1)
+	indicator.ZIndex = 7
+	indicator.Parent = btn
+	
+	local indCorner = Instance.new("UICorner")
+	indCorner.CornerRadius = UDim.new(1, 0)
+	indCorner.Parent = indicator
+	
+	bodyPartButtons[i] = {button = btn, indicator = indicator, bodyPart = bodyPart}
+end
+
 -- Distance Label
 local distLabel = Instance.new("TextLabel")
-distLabel.Size = UDim2.new(1, -20, 0, 20)
-distLabel.Position = UDim2.new(0, 10, 0, 175)
+distLabel.Size = UDim2.new(1, -20, 0, 18)
+distLabel.Position = UDim2.new(0, 10, 0, 240)
 distLabel.BackgroundTransparency = 1
 distLabel.Text = "Max Distance: 300"
 distLabel.Font = Enum.Font.Gotham
-distLabel.TextSize = 12
+distLabel.TextSize = 11
 distLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 distLabel.TextXAlignment = Enum.TextXAlignment.Left
 distLabel.Parent = mainFrame
@@ -230,7 +336,7 @@ distLabel.Parent = mainFrame
 -- Distance Slider
 local distSliderFrame = Instance.new("Frame")
 distSliderFrame.Size = UDim2.new(1, -20, 0, 8)
-distSliderFrame.Position = UDim2.new(0, 10, 0, 200)
+distSliderFrame.Position = UDim2.new(0, 10, 0, 263)
 distSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 distSliderFrame.BorderSizePixel = 0
 distSliderFrame.Parent = mainFrame
@@ -262,22 +368,29 @@ distKnobCorner.Parent = distSliderKnob
 
 -- Info Label
 local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 25)
-infoLabel.Position = UDim2.new(0, 10, 0, 215)
+infoLabel.Size = UDim2.new(1, -20, 0, 30)
+infoLabel.Position = UDim2.new(0, 10, 0, 278)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "Drag to reposition"
+infoLabel.Text = "Drag to reposition | [-] minimize"
 infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 10
+infoLabel.TextSize = 9
 infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
 infoLabel.TextXAlignment = Enum.TextXAlignment.Center
 infoLabel.Parent = mainFrame
 
 -- Settings
-local smoothness = 0.25  -- How smooth the aim moves (0.1 = very smooth, 0.9 = snappy)
-local aimPart = "Head"  -- Target part
-local wallCheckEnabled = true  -- Wall detection
-local teamCheckEnabled = true  -- Team check
-local maxDistance = 300  -- Start at 300, max 2000
+local smoothness = 0.25
+local aimPart = "Head"
+local wallCheckEnabled = true
+local teamCheckEnabled = true
+local attackNearEnabled = false
+local advancedAimEnabled = false
+local maxDistance = 300
+local nearDistance = 20  -- Attack enemies within 20 studs
+
+-- Advanced aim tracking
+local lastTargetPosition = {}
+local targetVelocities = {}
 
 -- Dragging for main frame
 local dragging = false
@@ -379,10 +492,61 @@ miniBtn.Activated:Connect(function()
 		-- Expand main container
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
 		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 240)
+			Size = UDim2.new(0, 160, 0, 310)
 		}):Play()
 	end
 end)
+
+-- Body Part Menu Toggle
+local bodyMenuOpen = false
+bodyPartBtn.Activated:Connect(function()
+	bodyMenuOpen = not bodyMenuOpen
+	
+	if bodyMenuOpen then
+		bodyPartMenu.Visible = true
+		TweenService:Create(bodyPartMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 140, 0, 155)
+		}):Play()
+		TweenService:Create(bodyPartBtn, TweenInfo.new(0.2), {
+			Rotation = 45,
+			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
+		}):Play()
+	else
+		TweenService:Create(bodyPartMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 140, 0, 0)
+		}):Play()
+		TweenService:Create(bodyPartBtn, TweenInfo.new(0.2), {
+			Rotation = 0,
+			BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+		}):Play()
+		task.wait(0.2)
+		bodyPartMenu.Visible = false
+	end
+end)
+
+-- Body Part Selection
+for i, data in ipairs(bodyPartButtons) do
+	data.button.Activated:Connect(function()
+		aimPart = data.bodyPart.part
+		
+		-- Update indicators
+		for j, btnData in ipairs(bodyPartButtons) do
+			btnData.indicator.Visible = (j == i)
+			TweenService:Create(btnData.button, TweenInfo.new(0.2), {
+				BackgroundTransparency = (j == i) and 0.2 or 0.5
+			}):Play()
+		end
+		
+		-- Visual feedback
+		TweenService:Create(data.button, TweenInfo.new(0.1), {
+			Size = UDim2.new(1, -8, 0, 32)
+		}):Play()
+		task.wait(0.1)
+		TweenService:Create(data.button, TweenInfo.new(0.1), {
+			Size = UDim2.new(1, -10, 0, 32)
+		}):Play()
+	end)
+end
 
 -- Smoothness slider functionality
 local sliderDragging = false
@@ -476,6 +640,35 @@ teamCheckBtn.Activated:Connect(function()
 	end
 end)
 
+-- Attack Near toggle
+attackNearBtn.Activated:Connect(function()
+	attackNearEnabled = not attackNearEnabled
+	
+	if attackNearEnabled then
+		attackNearBtn.Text = "Near: ON"
+		attackNearBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+	else
+		attackNearBtn.Text = "Near: OFF"
+		attackNearBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+	end
+end)
+
+-- Advanced Aim toggle
+advancedAimBtn.Activated:Connect(function()
+	advancedAimEnabled = not advancedAimEnabled
+	
+	if advancedAimEnabled then
+		advancedAimBtn.Text = "Adv: ON"
+		advancedAimBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+	else
+		advancedAimBtn.Text = "Adv: OFF"
+		advancedAimBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		-- Clear velocity tracking
+		lastTargetPosition = {}
+		targetVelocities = {}
+	end
+end)
+
 -- Toggle
 toggleBtn.Activated:Connect(function()
 	aimAssistEnabled = not aimAssistEnabled
@@ -539,7 +732,13 @@ local function getClosestTarget()
 			if targetPart and targetHum and targetHum.Health > 0 then
 				-- Distance check
 				local distance = (targetPart.Position - hrp.Position).Magnitude
-				if distance > maxDistance then continue end
+				
+				-- Attack Near mode: only target nearby enemies
+				if attackNearEnabled then
+					if distance > nearDistance then continue end
+				else
+					if distance > maxDistance then continue end
+				end
 				
 				-- Wall check
 				if not hasLineOfSight(targetPart) then continue end
@@ -559,6 +758,32 @@ local function getClosestTarget()
 	end
 	
 	return closestTarget
+end
+
+-- Calculate target velocity for prediction
+local function getTargetVelocity(target)
+	if not target then return Vector3.zero end
+	
+	local targetId = tostring(target)
+	local currentPos = target.Position
+	local currentTime = tick()
+	
+	if lastTargetPosition[targetId] then
+		local lastPos = lastTargetPosition[targetId].pos
+		local lastTime = lastTargetPosition[targetId].time
+		local timeDelta = currentTime - lastTime
+		
+		if timeDelta > 0 then
+			local velocity = (currentPos - lastPos) / timeDelta
+			targetVelocities[targetId] = velocity
+			lastTargetPosition[targetId] = {pos = currentPos, time = currentTime}
+			return velocity
+		end
+	else
+		lastTargetPosition[targetId] = {pos = currentPos, time = currentTime}
+	end
+	
+	return targetVelocities[targetId] or Vector3.zero
 end
 
 -- Aim assist loop
