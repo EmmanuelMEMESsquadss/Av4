@@ -440,8 +440,9 @@ local espEnabled = false
 -- ESP Storage
 local espHighlights = {}
 
--- Velocity prediction storage (for advanced aim)
+-- Velocity prediction storage (for advanced aim) - IMPROVED
 local targetVelocities = {}
+local lastUpdateTime = tick()
 
 -- Dragging for main frame
 local dragging = false
@@ -648,7 +649,7 @@ advancedBtn.Activated:Connect(function()
 	end
 end)
 
--- ESP Functions (CLEAN - Highlight Only)
+-- ESP Functions (IMPROVED - Infinite Loop System)
 local function createESP(targetPlayer)
 	if targetPlayer == player then return end
 	if espHighlights[targetPlayer] then return end
@@ -679,6 +680,37 @@ local function clearAllESP()
 		removeESP(targetPlayer)
 	end
 end
+
+-- ESP Infinite Monitoring System (FIXED - Never Disappears)
+spawn(function()
+	while true do
+		wait(2) -- Check every 2 seconds
+		
+		if espEnabled then
+			-- Check all players and ensure they have ESP
+			for _, targetPlayer in ipairs(Players:GetPlayers()) do
+				if targetPlayer ~= player then
+					-- Check if player has character
+					if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+						-- Check if ESP exists and is still valid
+						if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
+							-- ESP missing or destroyed, recreate it
+							removeESP(targetPlayer) -- Clean up old reference
+							createESP(targetPlayer)
+						end
+					end
+				end
+			end
+			
+			-- Clean up ESP for players who left or died
+			for targetPlayer, highlight in pairs(espHighlights) do
+				if not targetPlayer or not targetPlayer.Parent or not targetPlayer.Character then
+					removeESP(targetPlayer)
+				end
+			end
+		end
+	end
+end)
 
 -- ESP Toggle
 espBtn.Activated:Connect(function()
@@ -793,22 +825,29 @@ local function getTargetPart(targetChar)
 	return part or targetChar:FindFirstChild("Head") -- Ultimate fallback to head
 end
 
--- Calculate velocity prediction (for advanced aim)
+-- Calculate velocity prediction (IMPROVED ACCURACY)
 local function getPredictedPosition(targetPart)
 	if not advancedAimEnabled then
 		return targetPart.Position
 	end
 	
-	local targetId = targetPart.Parent.Name
+	local targetChar = targetPart.Parent
+	if not targetChar then return targetPart.Position end
+	
+	local targetId = targetChar.Name
 	local currentPos = targetPart.Position
 	local currentTime = tick()
+	
+	-- Get actual velocity from physics
+	local actualVelocity = targetPart.AssemblyLinearVelocity or targetPart.Velocity or Vector3.zero
 	
 	-- Store velocity data
 	if not targetVelocities[targetId] then
 		targetVelocities[targetId] = {
 			lastPos = currentPos,
 			lastTime = currentTime,
-			velocity = Vector3.zero,
+			velocity = actualVelocity,
+			smoothVelocity = actualVelocity,
 			isMoving = false
 		}
 		return currentPos
@@ -817,30 +856,47 @@ local function getPredictedPosition(targetPart)
 	local data = targetVelocities[targetId]
 	local deltaTime = currentTime - data.lastTime
 	
-	if deltaTime > 0.1 then -- Update every 0.1 seconds
+	if deltaTime > 0.05 then -- Update every 0.05 seconds for better accuracy
+		-- Calculate position-based velocity as backup
 		local deltaPos = currentPos - data.lastPos
-		local velocity = deltaPos / deltaTime
+		local calculatedVelocity = deltaPos / deltaTime
 		
-		-- Check if target is moving (velocity threshold)
-		local speed = velocity.Magnitude
-		data.isMoving = speed > 2 -- Moving if speed > 2 studs/sec
-		
-		if data.isMoving then
-			-- Smooth velocity tracking
-			data.velocity = data.velocity:Lerp(velocity, 0.5)
-		else
-			-- Target stopped, zero out velocity
-			data.velocity = data.velocity:Lerp(Vector3.zero, 0.8)
+		-- Use actual physics velocity if available, otherwise use calculated
+		local velocity = actualVelocity
+		if velocity.Magnitude < 0.5 then
+			velocity = calculatedVelocity
 		end
 		
+		-- Check if target is moving (lower threshold for better detection)
+		local speed = velocity.Magnitude
+		data.isMoving = speed > 1 -- Moving if speed > 1 stud/sec
+		
+		if data.isMoving then
+			-- Smooth velocity tracking with better interpolation
+			data.smoothVelocity = data.smoothVelocity:Lerp(velocity, 0.7)
+		else
+			-- Target stopped, gradually zero out velocity
+			data.smoothVelocity = data.smoothVelocity:Lerp(Vector3.zero, 0.9)
+		end
+		
+		data.velocity = velocity
 		data.lastPos = currentPos
 		data.lastTime = currentTime
 	end
 	
-	-- Predict future position
-	if data.isMoving and data.velocity.Magnitude > 1 then
-		local predictionTime = 0.15 -- Predict 0.15 seconds ahead
-		return currentPos + (data.velocity * predictionTime)
+	-- Predict future position with improved calculation
+	if data.isMoving and data.smoothVelocity.Magnitude > 0.5 then
+		-- Calculate distance to target for dynamic prediction time
+		local distance = (currentPos - camera.CFrame.Position).Magnitude
+		local predictionTime = math.clamp(distance / 500, 0.1, 0.25) -- Dynamic prediction based on distance
+		
+		-- Account for gravity if target is falling
+		local gravityOffset = Vector3.zero
+		if data.smoothVelocity.Y < -5 then -- If falling fast
+			gravityOffset = Vector3.new(0, -9.8 * predictionTime * predictionTime * 0.5, 0)
+		end
+		
+		return currentPos + (data.smoothVelocity * predictionTime) + gravityOffset
 	else
 		-- Target stopped or barely moving, return current position
 		return currentPos
@@ -926,11 +982,11 @@ print("========================================")
 print("Enhanced Aim Assist [ULTIMATE EDITION]")
 print("========================================")
 print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
-print("✅ Advanced Aim (Velocity Prediction)")
-print("✅ Clean ESP (Highlight Only)")
+print("✅ Advanced Aim (IMPROVED Accuracy)")
+print("✅ ESP (Infinite Monitoring - Never Disappears)")
 print("✅ Wall Detection + Team Check")
 print("✅ Adjustable Distance + Smoothness")
 print("💡 [+] button for body parts | Drag to move")
-print("🎯 Advanced Aim = Auto-tracks moving enemies!")
-print("👁️ ESP = Simple red highlight on enemies!")
+print("🎯 Advanced Aim = Physics + Gravity prediction!")
+print("👁️ ESP = Auto-refreshes every 2 seconds!")
 print("========================================")
