@@ -847,23 +847,53 @@ local function isTeammate(targetPlayer)
 	return player.Team == targetPlayer.Team
 end
 
--- Wall detection using Raycast
+-- Wall detection using Raycast (IMPROVED - Better Small Opening Detection)
 local function hasLineOfSight(targetPart)
 	if not wallCheckEnabled then return true end
 	if not hrp or not targetPart then return false end
 	
 	local origin = camera.CFrame.Position
-	local direction = (targetPart.Position - origin).Unit
-	local distance = (targetPart.Position - origin).Magnitude
+	local targetPos = targetPart.Position
+	local direction = (targetPos - origin).Unit
+	local distance = (targetPos - origin).Magnitude
 	
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterDescendantsInstances = {character, targetPart.Parent}
 	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 	raycastParams.IgnoreWater = true
 	
+	-- Primary raycast (center)
 	local result = workspace:Raycast(origin, direction * distance, raycastParams)
 	
-	return result == nil
+	-- If center ray hits nothing, we have line of sight
+	if not result then
+		return true
+	end
+	
+	-- ADVANCED: Multi-point detection for small openings (windows, gaps)
+	-- Cast 4 additional rays in a small pattern around the target
+	local offsets = {
+		Vector3.new(0.5, 0, 0),     -- Right
+		Vector3.new(-0.5, 0, 0),    -- Left
+		Vector3.new(0, 0.5, 0),     -- Up
+		Vector3.new(0, -0.5, 0)     -- Down
+	}
+	
+	for _, offset in ipairs(offsets) do
+		local offsetTarget = targetPos + offset
+		local offsetDirection = (offsetTarget - origin).Unit
+		local offsetDistance = (offsetTarget - origin).Magnitude
+		
+		local offsetResult = workspace:Raycast(origin, offsetDirection * offsetDistance, raycastParams)
+		
+		-- If ANY of the offset rays succeed, we can see through the opening
+		if not offsetResult then
+			return true
+		end
+	end
+	
+	-- All rays blocked, no line of sight
+	return false
 end
 
 -- Get target part from character (handles different body part names)
@@ -1041,10 +1071,10 @@ print("========================================")
 print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
 print("✅ Advanced Aim (IMPROVED Accuracy)")
 print("✅ ESP (6 MONITORING SYSTEMS - NEVER MISSES)")
-print("✅ Wall Detection + Team Check")
-print("✅ Adjustable Distance + Smoothness")
+print("✅ Wall Detection (5-Point Raycast - Window Support)")
+print("✅ Team Check + Adjustable Distance + Smoothness")
 print("💡 [+] button for body parts | Drag to move")
 print("🎯 Advanced Aim = Physics + Gravity prediction!")
 print("👁️ ESP = 6 systems monitoring 24/7!")
-print("⚡ ESP checks: 0.1s RenderStep + 0.5s Loop + Instant hooks!")
+print("⚡ Wall Check = Detects small openings/windows!")
 print("========================================")
