@@ -83,6 +83,7 @@ local dragHandle = Instance.new("Frame")
 dragHandle.Size = UDim2.new(1, 0, 0, 35)
 dragHandle.BackgroundTransparency = 1
 dragHandle.Active = true
+dragHandle.ZIndex = 1
 dragHandle.Parent = mainFrame
 
 -- Title
@@ -95,6 +96,7 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 16
 titleLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.ZIndex = 2
 titleLabel.Parent = dragHandle
 
 -- Triggerbot Settings Button (+ icon)
@@ -106,7 +108,8 @@ triggerbotSettingsBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
 triggerbotSettingsBtn.TextColor3 = Color3.new(1, 1, 1)
 triggerbotSettingsBtn.Font = Enum.Font.GothamBold
 triggerbotSettingsBtn.TextSize = 18
-triggerbotSettingsBtn.ZIndex = 10
+triggerbotSettingsBtn.ZIndex = 2
+triggerbotSettingsBtn.Active = true
 triggerbotSettingsBtn.Parent = dragHandle
 
 local triggerbotSettingsCorner = Instance.new("UICorner")
@@ -122,7 +125,8 @@ profileBtn.BackgroundColor3 = Color3.fromRGB(46, 147, 216)
 profileBtn.TextColor3 = Color3.new(1, 1, 1)
 profileBtn.Font = Enum.Font.GothamBold
 profileBtn.TextSize = 18
-profileBtn.ZIndex = 10
+profileBtn.ZIndex = 2
+profileBtn.Active = true
 profileBtn.Parent = dragHandle
 
 local profileCorner = Instance.new("UICorner")
@@ -278,6 +282,8 @@ toggleBtn.Text = "DISABLED"
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.TextSize = 14
 toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.ZIndex = 1
+toggleBtn.Active = true
 toggleBtn.Parent = mainFrame
 
 local toggleCorner = Instance.new("UICorner")
@@ -293,6 +299,8 @@ advancedBtn.Text = "🎯 Adv Aim: OFF"
 advancedBtn.Font = Enum.Font.GothamBold
 advancedBtn.TextSize = 12
 advancedBtn.TextColor3 = Color3.new(1, 1, 1)
+advancedBtn.ZIndex = 1
+advancedBtn.Active = true
 advancedBtn.Parent = mainFrame
 
 local advancedCorner = Instance.new("UICorner")
@@ -308,6 +316,8 @@ espBtn.Text = "👁️ ESP: OFF"
 espBtn.Font = Enum.Font.GothamBold
 espBtn.TextSize = 12
 espBtn.TextColor3 = Color3.new(1, 1, 1)
+espBtn.ZIndex = 1
+espBtn.Active = true
 espBtn.Parent = mainFrame
 
 local espCorner = Instance.new("UICorner")
@@ -323,6 +333,8 @@ triggerbotBtn.Text = "🎯 Triggerbot: OFF"
 triggerbotBtn.Font = Enum.Font.GothamBold
 triggerbotBtn.TextSize = 12
 triggerbotBtn.TextColor3 = Color3.new(1, 1, 1)
+triggerbotBtn.ZIndex = 1
+triggerbotBtn.Active = true
 triggerbotBtn.Parent = mainFrame
 
 local triggerbotCorner = Instance.new("UICorner")
@@ -368,6 +380,8 @@ sliderKnob.Size = UDim2.new(0, 16, 0, 16)
 sliderKnob.Position = UDim2.new(0.25, -8, 0.5, -8)
 sliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 sliderKnob.Text = ""
+sliderKnob.ZIndex = 1
+sliderKnob.Active = true
 sliderKnob.Parent = sliderFrame
 
 local knobCorner = Instance.new("UICorner")
@@ -383,6 +397,8 @@ wallCheckBtn.Text = "Wall: ON"
 wallCheckBtn.Font = Enum.Font.GothamBold
 wallCheckBtn.TextSize = 11
 wallCheckBtn.TextColor3 = Color3.new(1, 1, 1)
+wallCheckBtn.ZIndex = 1
+wallCheckBtn.Active = true
 wallCheckBtn.Parent = mainFrame
 
 local wallCorner = Instance.new("UICorner")
@@ -398,6 +414,8 @@ teamCheckBtn.Text = "Team: ON"
 teamCheckBtn.Font = Enum.Font.GothamBold
 teamCheckBtn.TextSize = 11
 teamCheckBtn.TextColor3 = Color3.new(1, 1, 1)
+teamCheckBtn.ZIndex = 1
+teamCheckBtn.Active = true
 teamCheckBtn.Parent = mainFrame
 
 local teamCorner = Instance.new("UICorner")
@@ -443,6 +461,8 @@ distSliderKnob.Size = UDim2.new(0, 16, 0, 16)
 distSliderKnob.Position = UDim2.new(0.15, -8, 0.5, -8)
 distSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 distSliderKnob.Text = ""
+distSliderKnob.ZIndex = 1
+distSliderKnob.Active = true
 distSliderKnob.Parent = distSliderFrame
 
 local distKnobCorner = Instance.new("UICorner")
