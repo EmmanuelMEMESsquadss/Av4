@@ -65,10 +65,10 @@ miniLabel.TextSize = 10
 miniLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 miniLabel.Parent = miniBtn
 
--- Main Container (ENLARGED)
+-- Main Container (ENLARGED FOR TRIGGERBOT)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 160, 0, 330)
-mainFrame.Position = UDim2.new(0.85, -160, 0.25, 0)
+mainFrame.Size = UDim2.new(0, 160, 0, 362)
+mainFrame.Position = UDim2.new(0.85, -160, 0.22, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = false
@@ -87,7 +87,7 @@ dragHandle.Parent = mainFrame
 
 -- Title
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -75, 1, 0)
+titleLabel.Size = UDim2.new(1, -100, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "AIM ASSIST"
@@ -96,6 +96,22 @@ titleLabel.TextSize = 16
 titleLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = dragHandle
+
+-- Triggerbot Settings Button (+ icon)
+local triggerbotSettingsBtn = Instance.new("TextButton")
+triggerbotSettingsBtn.Size = UDim2.new(0, 24, 0, 24)
+triggerbotSettingsBtn.Position = UDim2.new(1, -75, 0, 5)
+triggerbotSettingsBtn.Text = "+"
+triggerbotSettingsBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+triggerbotSettingsBtn.TextColor3 = Color3.new(1, 1, 1)
+triggerbotSettingsBtn.Font = Enum.Font.GothamBold
+triggerbotSettingsBtn.TextSize = 18
+triggerbotSettingsBtn.ZIndex = 10
+triggerbotSettingsBtn.Parent = dragHandle
+
+local triggerbotSettingsCorner = Instance.new("UICorner")
+triggerbotSettingsCorner.CornerRadius = UDim.new(0.5, 0)
+triggerbotSettingsCorner.Parent = triggerbotSettingsBtn
 
 -- Profile Selector Button (+ icon for body part selection)
 local profileBtn = Instance.new("TextButton")
@@ -298,10 +314,25 @@ local espCorner = Instance.new("UICorner")
 espCorner.CornerRadius = UDim.new(0, 8)
 espCorner.Parent = espBtn
 
+-- Triggerbot Toggle Button (NEW)
+local triggerbotBtn = Instance.new("TextButton")
+triggerbotBtn.Size = UDim2.new(1, -20, 0, 32)
+triggerbotBtn.Position = UDim2.new(0, 10, 0, 168)
+triggerbotBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+triggerbotBtn.Text = "🎯 Triggerbot: OFF"
+triggerbotBtn.Font = Enum.Font.GothamBold
+triggerbotBtn.TextSize = 12
+triggerbotBtn.TextColor3 = Color3.new(1, 1, 1)
+triggerbotBtn.Parent = mainFrame
+
+local triggerbotCorner = Instance.new("UICorner")
+triggerbotCorner.CornerRadius = UDim.new(0, 8)
+triggerbotCorner.Parent = triggerbotBtn
+
 -- Smoothness Label
 local smoothLabel = Instance.new("TextLabel")
 smoothLabel.Size = UDim2.new(1, -20, 0, 20)
-smoothLabel.Position = UDim2.new(0, 10, 0, 170)
+smoothLabel.Position = UDim2.new(0, 10, 0, 210)
 smoothLabel.BackgroundTransparency = 1
 smoothLabel.Text = "Smoothness: 0.25"
 smoothLabel.Font = Enum.Font.Gotham
@@ -313,7 +344,7 @@ smoothLabel.Parent = mainFrame
 -- Smoothness Slider
 local sliderFrame = Instance.new("Frame")
 sliderFrame.Size = UDim2.new(1, -20, 0, 8)
-sliderFrame.Position = UDim2.new(0, 10, 0, 195)
+sliderFrame.Position = UDim2.new(0, 10, 0, 235)
 sliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 sliderFrame.BorderSizePixel = 0
 sliderFrame.Parent = mainFrame
@@ -346,7 +377,7 @@ knobCorner.Parent = sliderKnob
 -- Wall Detection Toggle
 local wallCheckBtn = Instance.new("TextButton")
 wallCheckBtn.Size = UDim2.new(0.48, 0, 0, 30)
-wallCheckBtn.Position = UDim2.new(0, 10, 0, 215)
+wallCheckBtn.Position = UDim2.new(0, 10, 0, 255)
 wallCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 wallCheckBtn.Text = "Wall: ON"
 wallCheckBtn.Font = Enum.Font.GothamBold
@@ -361,7 +392,7 @@ wallCorner.Parent = wallCheckBtn
 -- Team Check Toggle
 local teamCheckBtn = Instance.new("TextButton")
 teamCheckBtn.Size = UDim2.new(0.48, 0, 0, 30)
-teamCheckBtn.Position = UDim2.new(0.52, 0, 0, 215)
+teamCheckBtn.Position = UDim2.new(0.52, 0, 0, 255)
 teamCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 teamCheckBtn.Text = "Team: ON"
 teamCheckBtn.Font = Enum.Font.GothamBold
@@ -376,7 +407,7 @@ teamCorner.Parent = teamCheckBtn
 -- Distance Label
 local distLabel = Instance.new("TextLabel")
 distLabel.Size = UDim2.new(1, -20, 0, 20)
-distLabel.Position = UDim2.new(0, 10, 0, 255)
+distLabel.Position = UDim2.new(0, 10, 0, 295)
 distLabel.BackgroundTransparency = 1
 distLabel.Text = "Max Distance: 300"
 distLabel.Font = Enum.Font.Gotham
@@ -388,7 +419,7 @@ distLabel.Parent = mainFrame
 -- Distance Slider
 local distSliderFrame = Instance.new("Frame")
 distSliderFrame.Size = UDim2.new(1, -20, 0, 8)
-distSliderFrame.Position = UDim2.new(0, 10, 0, 280)
+distSliderFrame.Position = UDim2.new(0, 10, 0, 320)
 distSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 distSliderFrame.BorderSizePixel = 0
 distSliderFrame.Parent = mainFrame
@@ -421,7 +452,7 @@ distKnobCorner.Parent = distSliderKnob
 -- Info Label
 local infoLabel = Instance.new("TextLabel")
 infoLabel.Size = UDim2.new(1, -20, 0, 35)
-infoLabel.Position = UDim2.new(0, 10, 0, 295)
+infoLabel.Position = UDim2.new(0, 10, 0, 335)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Text = "🎯 Body Part: HEAD\nDrag to reposition"
 infoLabel.Font = Enum.Font.Gotham
@@ -435,6 +466,8 @@ local smoothness = 0.25
 local wallCheckEnabled = true
 local teamCheckEnabled = true
 local maxDistance = 300
+local triggerbotDelay = 50 -- milliseconds
+local triggerbotHold = 100 -- milliseconds
 local espEnabled = false
 
 -- ESP Storage
@@ -538,8 +571,72 @@ miniBtn.Activated:Connect(function()
 		
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
 		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 330)
+			Size = UDim2.new(0, 160, 0, 362)
 		}):Play()
+	end
+end)
+
+-- Triggerbot Delay Slider
+local delaySliderDragging = false
+
+delaySliderKnob.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		delaySliderDragging = true
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				delaySliderDragging = false
+			end
+		end)
+	end
+end)
+
+delaySliderKnob.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if delaySliderDragging then
+			local mousePos = input.Position
+			local sliderPos = delaySliderFrame.AbsolutePosition
+			local sliderSize = delaySliderFrame.AbsoluteSize
+			
+			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
+			triggerbotDelay = math.floor(relativeX * 500) -- 0-500ms
+			
+			delaySliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+			delaySliderKnob.Position = UDim2.new(relativeX, -7, 0.5, -7)
+			delayLabel.Text = "Delay: " .. triggerbotDelay .. "ms"
+		end
+	end
+end)
+
+-- Triggerbot Hold Slider
+local holdSliderDragging = false
+
+holdSliderKnob.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		holdSliderDragging = true
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				holdSliderDragging = false
+			end
+		end)
+	end
+end)
+
+holdSliderKnob.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if holdSliderDragging then
+			local mousePos = input.Position
+			local sliderPos = holdSliderFrame.AbsolutePosition
+			local sliderSize = holdSliderFrame.AbsoluteSize
+			
+			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
+			triggerbotHold = math.floor(relativeX * 500) -- 0-500ms
+			
+			holdSliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+			holdSliderKnob.Position = UDim2.new(relativeX, -7, 0.5, -7)
+			holdLabel.Text = "Hold: " .. triggerbotHold .. "ms"
+		end
 	end
 end)
 
@@ -646,6 +743,83 @@ advancedBtn.Activated:Connect(function()
 		advancedBtn.Text = "🎯 Adv Aim: OFF"
 		advancedBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
 		targetVelocities = {}
+	end
+end)
+
+-- Universal Triggerbot System
+local function getMouseTarget()
+	local mouse = player:GetMouse()
+	if not mouse then return nil end
+	
+	local target = mouse.Target
+	if not target then return nil end
+	
+	-- Check if target is a player character
+	local targetModel = target:FindFirstAncestorOfClass("Model")
+	if not targetModel then return nil end
+	
+	local targetPlayer = Players:GetPlayerFromCharacter(targetModel)
+	if not targetPlayer or targetPlayer == player then return nil end
+	
+	-- Check team
+	if teamCheckEnabled and isTeammate(targetPlayer) then return nil end
+	
+	local targetHum = targetModel:FindFirstChildWhichIsA("Humanoid")
+	if not targetHum or targetHum.Health <= 0 then return nil end
+	
+	-- Check distance
+	local targetHRP = targetModel:FindFirstChild("HumanoidRootPart")
+	if targetHRP and hrp then
+		local distance = (targetHRP.Position - hrp.Position).Magnitude
+		if distance > maxDistance then return nil end
+	end
+	
+	return targetModel
+end
+
+local lastTriggerTime = 0
+local triggerbotCooldown = false
+
+-- Triggerbot Loop (Universal - Works with ANY tool/gun)
+spawn(function()
+	while true do
+		wait(0.01) -- Check every 10ms for responsiveness
+		
+		if triggerbotEnabled and not triggerbotCooldown then
+			local target = getMouseTarget()
+			
+			if target then
+				triggerbotCooldown = true
+				
+				-- Delay before shooting
+				wait(triggerbotDelay / 1000)
+				
+				-- Check if still on target after delay
+				if getMouseTarget() == target then
+					-- Simulate mouse click (Universal method)
+					mouse1press()
+					wait(triggerbotHold / 1000) -- Hold duration
+					mouse1release()
+				end
+				
+				-- Cooldown to prevent spam
+				wait(0.1)
+				triggerbotCooldown = false
+			end
+		end
+	end
+end)
+
+-- Triggerbot Toggle
+triggerbotBtn.Activated:Connect(function()
+	triggerbotEnabled = not triggerbotEnabled
+	
+	if triggerbotEnabled then
+		triggerbotBtn.Text = "🎯 Triggerbot: ON"
+		triggerbotBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 120)
+	else
+		triggerbotBtn.Text = "🎯 Triggerbot: OFF"
+		triggerbotBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
 	end
 end)
 
@@ -1072,9 +1246,10 @@ print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
 print("✅ Advanced Aim (IMPROVED Accuracy)")
 print("✅ ESP (6 MONITORING SYSTEMS - NEVER MISSES)")
 print("✅ Wall Detection (5-Point Raycast - Window Support)")
+print("✅ Universal Triggerbot (Adjustable Delay + Hold)")
 print("✅ Team Check + Adjustable Distance + Smoothness")
-print("💡 [+] button for body parts | Drag to move")
+print("💡 [+] buttons for body parts & triggerbot settings")
 print("🎯 Advanced Aim = Physics + Gravity prediction!")
 print("👁️ ESP = 6 systems monitoring 24/7!")
-print("⚡ Wall Check = Detects small openings/windows!")
+print("⚡ Triggerbot = Works with ANY gun/tool!")
 print("========================================")
