@@ -649,28 +649,48 @@ advancedBtn.Activated:Connect(function()
 	end
 end)
 
--- ESP Functions (IMPROVED - Infinite Loop System)
+-- ESP Functions (HEAVY MONITORING - Multiple Systems)
 local function createESP(targetPlayer)
 	if targetPlayer == player then return end
-	if espHighlights[targetPlayer] then return end
+	if espHighlights[targetPlayer] and espHighlights[targetPlayer].Parent then return end
 	
 	local char = targetPlayer.Character
-	if not char then return end
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 	
-	-- Create Highlight Only
+	-- Remove old highlight if exists but broken
+	if espHighlights[targetPlayer] then
+		pcall(function() espHighlights[targetPlayer]:Destroy() end)
+	end
+	
+	-- Create Highlight
 	local highlight = Instance.new("Highlight")
 	highlight.FillColor = Color3.fromRGB(255, 80, 80)
 	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
 	highlight.FillTransparency = 0.5
 	highlight.OutlineTransparency = 0
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 	highlight.Parent = char
 	
 	espHighlights[targetPlayer] = highlight
+	
+	-- Monitor this specific highlight
+	spawn(function()
+		while espEnabled and targetPlayer and targetPlayer.Parent do
+			wait(1)
+			-- Check if highlight still exists and is parented correctly
+			if not highlight or not highlight.Parent or highlight.Parent ~= char then
+				if espEnabled then
+					createESP(targetPlayer) -- Recreate if broken
+				end
+				break
+			end
+		end
+	end)
 end
 
 local function removeESP(targetPlayer)
 	if espHighlights[targetPlayer] then
-		espHighlights[targetPlayer]:Destroy()
+		pcall(function() espHighlights[targetPlayer]:Destroy() end)
 		espHighlights[targetPlayer] = nil
 	end
 end
@@ -681,80 +701,30 @@ local function clearAllESP()
 	end
 end
 
--- ESP Infinite Monitoring System (FIXED - Never Disappears)
+-- ESP TRIPLE MONITORING SYSTEM (AGGRESSIVE - Never Misses)
+-- System 1: Fast Loop - Checks every 0.5 seconds
 spawn(function()
 	while true do
-		wait(2) -- Check every 2 seconds
+		wait(0.5)
 		
 		if espEnabled then
-			-- Check all players and ensure they have ESP
 			for _, targetPlayer in ipairs(Players:GetPlayers()) do
-				if targetPlayer ~= player then
-					-- Check if player has character
-					if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-						-- Check if ESP exists and is still valid
-						if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
-							-- ESP missing or destroyed, recreate it
-							removeESP(targetPlayer) -- Clean up old reference
-							createESP(targetPlayer)
-						end
+				if targetPlayer ~= player and targetPlayer.Character then
+					if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
+						createESP(targetPlayer)
 					end
 				end
 			end
-			
-			-- Clean up ESP for players who left or died
-			for targetPlayer, highlight in pairs(espHighlights) do
-				if not targetPlayer or not targetPlayer.Parent or not targetPlayer.Character then
-					removeESP(targetPlayer)
-				end
-			end
 		end
 	end
 end)
 
--- ESP Toggle
-espBtn.Activated:Connect(function()
-	espEnabled = not espEnabled
-	
-	if espEnabled then
-		espBtn.Text = "👁️ ESP: ON"
-		espBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 255)
-		
-		-- Create ESP for all players
-		for _, targetPlayer in ipairs(Players:GetPlayers()) do
-			if targetPlayer ~= player and targetPlayer.Character then
-				createESP(targetPlayer)
-			end
-		end
-	else
-		espBtn.Text = "👁️ ESP: OFF"
-		espBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
-		clearAllESP()
-	end
-end)
-
--- ESP Auto-update (handles new players and respawns)
-Players.PlayerAdded:Connect(function(targetPlayer)
-	if espEnabled and targetPlayer ~= player then
-		targetPlayer.CharacterAdded:Connect(function(char)
-			task.wait(0.5)
-			if espEnabled then
-				createESP(targetPlayer)
-			end
-		end)
-	end
-end)
-
-Players.PlayerRemoving:Connect(function(targetPlayer)
-	removeESP(targetPlayer)
-end)
-
--- Monitor existing players for respawns
+-- System 2: Character Added Instant Response
 for _, targetPlayer in ipairs(Players:GetPlayers()) do
 	if targetPlayer ~= player then
 		targetPlayer.CharacterAdded:Connect(function(char)
-			task.wait(0.5)
 			if espEnabled then
+				wait(0.3) -- Small delay for character to fully load
 				createESP(targetPlayer)
 			end
 		end)
@@ -764,6 +734,93 @@ for _, targetPlayer in ipairs(Players:GetPlayers()) do
 		end)
 	end
 end
+
+-- System 3: Player Added Instant Hook
+Players.PlayerAdded:Connect(function(targetPlayer)
+	if targetPlayer ~= player then
+		targetPlayer.CharacterAdded:Connect(function(char)
+			if espEnabled then
+				wait(0.3)
+				createESP(targetPlayer)
+			end
+		end)
+		
+		targetPlayer.CharacterRemoving:Connect(function()
+			removeESP(targetPlayer)
+		end)
+	end
+end)
+
+-- System 4: Player Removing Cleanup
+Players.PlayerRemoving:Connect(function(targetPlayer)
+	removeESP(targetPlayer)
+end)
+
+-- System 5: Workspace Monitor (catches characters spawned directly)
+spawn(function()
+	while true do
+		wait(1)
+		
+		if espEnabled then
+			-- Check all models in workspace that could be player characters
+			for _, obj in ipairs(workspace:GetChildren()) do
+				if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+					local targetPlayer = Players:GetPlayerFromCharacter(obj)
+					if targetPlayer and targetPlayer ~= player then
+						if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
+							createESP(targetPlayer)
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- System 6: RenderStepped Real-time Check (MOST AGGRESSIVE)
+RunService.RenderStepped:Connect(function()
+	if espEnabled then
+		-- Quick validation every frame
+		local currentTime = tick()
+		if currentTime - lastUpdateTime > 0.1 then -- Throttle to every 0.1 seconds
+			lastUpdateTime = currentTime
+			
+			for _, targetPlayer in ipairs(Players:GetPlayers()) do
+				if targetPlayer ~= player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+					-- Check if highlight is missing or broken
+					if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
+						createESP(targetPlayer)
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- ESP Toggle (IMPROVED - Instant Application)
+espBtn.Activated:Connect(function()
+	espEnabled = not espEnabled
+	
+	if espEnabled then
+		espBtn.Text = "👁️ ESP: ON"
+		espBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 255)
+		
+		-- Immediately create ESP for ALL players (aggressive instant load)
+		task.spawn(function()
+			for _, targetPlayer in ipairs(Players:GetPlayers()) do
+				if targetPlayer ~= player then
+					if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+						createESP(targetPlayer)
+					end
+				end
+			end
+		end)
+	else
+		espBtn.Text = "👁️ ESP: OFF"
+		espBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
+		clearAllESP()
+	end
+end)
 
 -- Main Toggle
 toggleBtn.Activated:Connect(function()
@@ -983,10 +1040,11 @@ print("Enhanced Aim Assist [ULTIMATE EDITION]")
 print("========================================")
 print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
 print("✅ Advanced Aim (IMPROVED Accuracy)")
-print("✅ ESP (Infinite Monitoring - Never Disappears)")
+print("✅ ESP (6 MONITORING SYSTEMS - NEVER MISSES)")
 print("✅ Wall Detection + Team Check")
 print("✅ Adjustable Distance + Smoothness")
 print("💡 [+] button for body parts | Drag to move")
 print("🎯 Advanced Aim = Physics + Gravity prediction!")
-print("👁️ ESP = Auto-refreshes every 2 seconds!")
+print("👁️ ESP = 6 systems monitoring 24/7!")
+print("⚡ ESP checks: 0.1s RenderStep + 0.5s Loop + Instant hooks!")
 print("========================================")
