@@ -20,7 +20,6 @@ local aimAssistEnabled = false
 local advancedAimEnabled = false
 local currentTarget = nil
 local FOV_RADIUS = 150
-local botsOnlyMode = false
 
 local function setupCharacter(char)
 	character = char
@@ -66,9 +65,9 @@ miniLabel.TextSize = 10
 miniLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 miniLabel.Parent = miniBtn
 
--- Main Container (ENLARGED FOR NEW BUTTON)
+-- Main Container (ENLARGED)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 160, 0, 362)
+mainFrame.Size = UDim2.new(0, 160, 0, 330)
 mainFrame.Position = UDim2.new(0.85, -160, 0.25, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
@@ -299,25 +298,10 @@ local espCorner = Instance.new("UICorner")
 espCorner.CornerRadius = UDim.new(0, 8)
 espCorner.Parent = espBtn
 
--- Bots Only Toggle Button (NEW)
-local botsOnlyBtn = Instance.new("TextButton")
-botsOnlyBtn.Size = UDim2.new(1, -20, 0, 32)
-botsOnlyBtn.Position = UDim2.new(0, 10, 0, 168)
-botsOnlyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 100)
-botsOnlyBtn.Text = "🤖 Bots Only: OFF"
-botsOnlyBtn.Font = Enum.Font.GothamBold
-botsOnlyBtn.TextSize = 12
-botsOnlyBtn.TextColor3 = Color3.new(1, 1, 1)
-botsOnlyBtn.Parent = mainFrame
-
-local botsCorner = Instance.new("UICorner")
-botsCorner.CornerRadius = UDim.new(0, 8)
-botsCorner.Parent = botsOnlyBtn
-
 -- Smoothness Label
 local smoothLabel = Instance.new("TextLabel")
 smoothLabel.Size = UDim2.new(1, -20, 0, 20)
-smoothLabel.Position = UDim2.new(0, 10, 0, 210)
+smoothLabel.Position = UDim2.new(0, 10, 0, 170)
 smoothLabel.BackgroundTransparency = 1
 smoothLabel.Text = "Smoothness: 0.25"
 smoothLabel.Font = Enum.Font.Gotham
@@ -329,7 +313,7 @@ smoothLabel.Parent = mainFrame
 -- Smoothness Slider
 local sliderFrame = Instance.new("Frame")
 sliderFrame.Size = UDim2.new(1, -20, 0, 8)
-sliderFrame.Position = UDim2.new(0, 10, 0, 235)
+sliderFrame.Position = UDim2.new(0, 10, 0, 195)
 sliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 sliderFrame.BorderSizePixel = 0
 sliderFrame.Parent = mainFrame
@@ -362,7 +346,7 @@ knobCorner.Parent = sliderKnob
 -- Wall Detection Toggle
 local wallCheckBtn = Instance.new("TextButton")
 wallCheckBtn.Size = UDim2.new(0.48, 0, 0, 30)
-wallCheckBtn.Position = UDim2.new(0, 10, 0, 255)
+wallCheckBtn.Position = UDim2.new(0, 10, 0, 215)
 wallCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 wallCheckBtn.Text = "Wall: ON"
 wallCheckBtn.Font = Enum.Font.GothamBold
@@ -377,7 +361,7 @@ wallCorner.Parent = wallCheckBtn
 -- Team Check Toggle
 local teamCheckBtn = Instance.new("TextButton")
 teamCheckBtn.Size = UDim2.new(0.48, 0, 0, 30)
-teamCheckBtn.Position = UDim2.new(0.52, 0, 0, 255)
+teamCheckBtn.Position = UDim2.new(0.52, 0, 0, 215)
 teamCheckBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 teamCheckBtn.Text = "Team: ON"
 teamCheckBtn.Font = Enum.Font.GothamBold
@@ -392,7 +376,7 @@ teamCorner.Parent = teamCheckBtn
 -- Distance Label
 local distLabel = Instance.new("TextLabel")
 distLabel.Size = UDim2.new(1, -20, 0, 20)
-distLabel.Position = UDim2.new(0, 10, 0, 295)
+distLabel.Position = UDim2.new(0, 10, 0, 255)
 distLabel.BackgroundTransparency = 1
 distLabel.Text = "Max Distance: 300"
 distLabel.Font = Enum.Font.Gotham
@@ -404,7 +388,7 @@ distLabel.Parent = mainFrame
 -- Distance Slider
 local distSliderFrame = Instance.new("Frame")
 distSliderFrame.Size = UDim2.new(1, -20, 0, 8)
-distSliderFrame.Position = UDim2.new(0, 10, 0, 320)
+distSliderFrame.Position = UDim2.new(0, 10, 0, 280)
 distSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 distSliderFrame.BorderSizePixel = 0
 distSliderFrame.Parent = mainFrame
@@ -437,7 +421,7 @@ distKnobCorner.Parent = distSliderKnob
 -- Info Label
 local infoLabel = Instance.new("TextLabel")
 infoLabel.Size = UDim2.new(1, -20, 0, 35)
-infoLabel.Position = UDim2.new(0, 10, 0, 335)
+infoLabel.Position = UDim2.new(0, 10, 0, 295)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Text = "🎯 Body Part: HEAD\nDrag to reposition"
 infoLabel.Font = Enum.Font.Gotham
@@ -554,7 +538,7 @@ miniBtn.Activated:Connect(function()
 		
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
 		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 362)
+			Size = UDim2.new(0, 160, 0, 330)
 		}):Play()
 	end
 end)
@@ -665,90 +649,9 @@ advancedBtn.Activated:Connect(function()
 	end
 end)
 
--- BOT DETECTION SYSTEM (MULTIVERSAL - Works in ANY game)
-local function isBot(targetPlayer)
-	if not targetPlayer then return false end
-	
-	-- Method 1: Check if player has a valid UserId
-	-- Real players have UserId > 0, many bots have UserId <= 0 or negative
-	local userId = targetPlayer.UserId
-	if userId <= 0 or userId == nil then
-		return true -- Likely a bot
-	end
-	
-	-- Method 2: Check account age
-	-- Bots often have AccountAge of 0
-	local success, accountAge = pcall(function()
-		return targetPlayer.AccountAge
-	end)
-	if success and accountAge == 0 then
-		return true -- New account or bot
-	end
-	
-	-- Method 3: Check if player has a real Roblox profile
-	-- Bots sometimes don't have proper player instances
-	if not targetPlayer:IsA("Player") then
-		return true
-	end
-	
-	-- Method 4: Check player's name patterns
-	-- Many games use specific patterns for bots
-	local name = targetPlayer.Name
-	if name:match("^Bot") or name:match("Bot$") or name:match("^NPC") or 
-	   name:match("NPC$") or name:match("^AI") or name:match("Dummy") or
-	   name:match("^Enemy") or name:match("^Mob") then
-		return true
-	end
-	
-	-- Method 5: Check if DisplayName differs significantly from Name
-	-- Real players usually have matching or similar names
-	local displayName = targetPlayer.DisplayName
-	if displayName and displayName ~= name then
-		-- Check if DisplayName looks auto-generated
-		if displayName:match("^Guest") or displayName:match("^Player%d+$") then
-			return true
-		end
-	end
-	
-	-- Method 6: Check if player is in Players service properly
-	-- Some bots exist as models but aren't actual players
-	local isInPlayers = false
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr == targetPlayer then
-			isInPlayers = true
-			break
-		end
-	end
-	if not isInPlayers then
-		return true
-	end
-	
-	-- If all checks pass, it's a real player
-	return false
-end
-
--- Bots Only Toggle
-botsOnlyBtn.Activated:Connect(function()
-	botsOnlyMode = not botsOnlyMode
-	
-	if botsOnlyMode then
-		botsOnlyBtn.Text = "🤖 Bots Only: ON"
-		botsOnlyBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 150)
-	else
-		botsOnlyBtn.Text = "🤖 Bots Only: OFF"
-		botsOnlyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 100)
-	end
-end)
-
--- ESP Functions (HEAVY MONITORING - Multiple Systems) - WITH BOT FILTER
+-- ESP Functions (HEAVY MONITORING - Multiple Systems)
 local function createESP(targetPlayer)
 	if targetPlayer == player then return end
-	
-	-- Bot filtering for ESP
-	if botsOnlyMode and not isBot(targetPlayer) then
-		return -- Skip real players when bots only mode is on
-	end
-	
 	if espHighlights[targetPlayer] and espHighlights[targetPlayer].Parent then return end
 	
 	local char = targetPlayer.Character
@@ -777,10 +680,7 @@ local function createESP(targetPlayer)
 			-- Check if highlight still exists and is parented correctly
 			if not highlight or not highlight.Parent or highlight.Parent ~= char then
 				if espEnabled then
-					-- Re-check bot status before recreating
-					if not botsOnlyMode or isBot(targetPlayer) then
-						createESP(targetPlayer) -- Recreate if broken
-					end
+					createESP(targetPlayer) -- Recreate if broken
 				end
 				break
 			end
@@ -801,7 +701,7 @@ local function clearAllESP()
 	end
 end
 
--- ESP TRIPLE MONITORING SYSTEM (AGGRESSIVE - Never Misses) - WITH BOT FILTER
+-- ESP TRIPLE MONITORING SYSTEM (AGGRESSIVE - Never Misses)
 -- System 1: Fast Loop - Checks every 0.5 seconds
 spawn(function()
 	while true do
@@ -810,16 +710,8 @@ spawn(function()
 		if espEnabled then
 			for _, targetPlayer in ipairs(Players:GetPlayers()) do
 				if targetPlayer ~= player and targetPlayer.Character then
-					-- Check bot filter
-					if not botsOnlyMode or isBot(targetPlayer) then
-						if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
-							createESP(targetPlayer)
-						end
-					else
-						-- Remove ESP from real players if bots only mode is ON
-						if espHighlights[targetPlayer] then
-							removeESP(targetPlayer)
-						end
+					if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
+						createESP(targetPlayer)
 					end
 				end
 			end
@@ -885,7 +777,7 @@ spawn(function()
 	end
 end)
 
--- System 6: RenderStepped Real-time Check (MOST AGGRESSIVE) - WITH BOT FILTER
+-- System 6: RenderStepped Real-time Check (MOST AGGRESSIVE)
 RunService.RenderStepped:Connect(function()
 	if espEnabled then
 		-- Quick validation every frame
@@ -895,17 +787,9 @@ RunService.RenderStepped:Connect(function()
 			
 			for _, targetPlayer in ipairs(Players:GetPlayers()) do
 				if targetPlayer ~= player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-					-- Check bot filter
-					if not botsOnlyMode or isBot(targetPlayer) then
-						-- Check if highlight is missing or broken
-						if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
-							createESP(targetPlayer)
-						end
-					else
-						-- Remove ESP from real players if bots only mode is ON
-						if espHighlights[targetPlayer] then
-							removeESP(targetPlayer)
-						end
+					-- Check if highlight is missing or broken
+					if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
+						createESP(targetPlayer)
 					end
 				end
 			end
@@ -1076,7 +960,7 @@ local function getPredictedPosition(targetPart)
 	end
 end
 
--- Get valid target (WITH BOT FILTER)
+-- Get valid target
 local function getClosestTarget()
 	if not camera or not hrp then return nil end
 	
@@ -1086,11 +970,6 @@ local function getClosestTarget()
 	
 	for _, targetPlayer in ipairs(Players:GetPlayers()) do
 		if targetPlayer ~= player and targetPlayer.Character then
-			-- Bot filtering for aim assist
-			if botsOnlyMode and not isBot(targetPlayer) then
-				continue -- Skip real players when bots only mode is on
-			end
-			
 			if isTeammate(targetPlayer) then continue end
 			
 			local targetChar = targetPlayer.Character
@@ -1162,11 +1041,10 @@ print("========================================")
 print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
 print("✅ Advanced Aim (IMPROVED Accuracy)")
 print("✅ ESP (6 MONITORING SYSTEMS - NEVER MISSES)")
-print("✅ Bots Only Mode (Multiversal Detection)")
 print("✅ Wall Detection + Team Check")
 print("✅ Adjustable Distance + Smoothness")
 print("💡 [+] button for body parts | Drag to move")
 print("🎯 Advanced Aim = Physics + Gravity prediction!")
 print("👁️ ESP = 6 systems monitoring 24/7!")
-print("🤖 Bots Only = 6 detection methods!")
+print("⚡ ESP checks: 0.1s RenderStep + 0.5s Loop + Instant hooks!")
 print("========================================")
