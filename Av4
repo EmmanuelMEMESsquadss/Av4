@@ -8,9 +8,9 @@ local TweenService = game:GetService("TweenService")
 local Teams = game:GetService("Teams")
 
 -- Only run on mobile
-if not UserInputService.TouchEnabled then
-	return
-end
+--if not UserInputService.TouchEnabled then
+--	return
+--end
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -1237,58 +1237,145 @@ espBtn.Activated:Connect(function()
 	end
 end)
 
--- Universal Triggerbot System
+-- UNIVERSAL TRIGGERBOT SYSTEM (Mobile + PC Compatible)
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local function fireWeapon()
+	-- METHOD 1: VirtualInputManager (Mobile Compatible!)
+	pcall(function()
+		VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+		task.wait(triggerbotHold / 1000)
+		VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+	end)
+	
+	-- METHOD 2: Tool Activation (Universal Backup)
+	pcall(function()
+		local tool = character and character:FindFirstChildOfClass("Tool")
+		if tool then
+			tool:Activate()
+			task.wait(triggerbotHold / 1000)
+			tool:Deactivate()
+		end
+	end)
+	
+	-- METHOD 3: Mouse1 for PC (Fallback)
+	pcall(function()
+		if mouse1press and mouse1release then
+			mouse1press()
+			task.wait(triggerbotHold / 1000)
+			mouse1release()
+		end
+	end)
+end
+
 local function getMouseTarget()
+	if not hrp then return nil end
+	
+	-- METHOD 1: Mouse.Target (Most Common)
 	local mouse = player:GetMouse()
-	if not mouse then return nil end
-	
-	local target = mouse.Target
-	if not target then return nil end
-	
-	local targetModel = target:FindFirstAncestorOfClass("Model")
-	if not targetModel then return nil end
-	
-	local targetPlayer = Players:GetPlayerFromCharacter(targetModel)
-	if not targetPlayer or targetPlayer == player then return nil end
-	
-	if teamCheckEnabled and isTeammate(targetPlayer) then return nil end
-	
-	local targetHum = targetModel:FindFirstChildWhichIsA("Humanoid")
-	if not targetHum or targetHum.Health <= 0 then return nil end
-	
-	local targetHRP = targetModel:FindFirstChild("HumanoidRootPart")
-	if targetHRP and hrp then
-		local distance = (targetHRP.Position - hrp.Position).Magnitude
-		if distance > maxDistance then return nil end
+	if mouse and mouse.Target then
+		local target = mouse.Target
+		local targetModel = target:FindFirstAncestorOfClass("Model")
+		
+		if targetModel then
+			local targetPlayer = Players:GetPlayerFromCharacter(targetModel)
+			if targetPlayer and targetPlayer ~= player then
+				if teamCheckEnabled and isTeammate(targetPlayer) then return nil end
+				
+				local targetHum = targetModel:FindFirstChildWhichIsA("Humanoid")
+				if targetHum and targetHum.Health > 0 then
+					local targetHRP = targetModel:FindFirstChild("HumanoidRootPart")
+					if targetHRP then
+						local distance = (targetHRP.Position - hrp.Position).Magnitude
+						if distance <= maxDistance then
+							return targetModel
+						end
+					end
+				end
+			end
+		end
 	end
 	
-	return targetModel
+	-- METHOD 2: Camera Raycast (More Reliable)
+	local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+	local unitRay = camera:ViewportPointToRay(screenCenter.X, screenCenter.Y)
+	
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = {character}
+	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+	raycastParams.IgnoreWater = true
+	
+	local rayResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * maxDistance, raycastParams)
+	
+	if rayResult and rayResult.Instance then
+		local targetModel = rayResult.Instance:FindFirstAncestorOfClass("Model")
+		
+		if targetModel then
+			local targetPlayer = Players:GetPlayerFromCharacter(targetModel)
+			if targetPlayer and targetPlayer ~= player then
+				if teamCheckEnabled and isTeammate(targetPlayer) then return nil end
+				
+				local targetHum = targetModel:FindFirstChildWhichIsA("Humanoid")
+				if targetHum and targetHum.Health > 0 then
+					return targetModel
+				end
+			end
+		end
+	end
+	
+	-- METHOD 3: Screen Center FOV Check (Backup)
+	for _, targetPlayer in ipairs(Players:GetPlayers()) do
+		if targetPlayer ~= player and targetPlayer.Character then
+			if teamCheckEnabled and isTeammate(targetPlayer) then continue end
+			
+			local targetChar = targetPlayer.Character
+			local targetHum = targetChar:FindFirstChildWhichIsA("Humanoid")
+			local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+			
+			if targetHum and targetHum.Health > 0 and targetHRP then
+				local distance = (targetHRP.Position - hrp.Position).Magnitude
+				if distance <= maxDistance then
+					local screenPos, onScreen = camera:WorldToViewportPoint(targetHRP.Position)
+					if onScreen then
+						local distanceFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+						if distanceFromCenter < 50 then
+							return targetChar
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	return nil
 end
 
 local triggerbotCooldown = false
+local lastTarget = nil
 
-spawn(function()
-	while true do
-		wait(0.01)
+-- Triggerbot Loop (Mobile + PC Compatible)
+RunService.RenderStepped:Connect(function()
+	if not triggerbotEnabled or triggerbotCooldown then return end
+	
+	local target = getMouseTarget()
+	
+	if target then
+		triggerbotCooldown = true
+		lastTarget = target
 		
-		if triggerbotEnabled and not triggerbotCooldown then
-			local target = getMouseTarget()
-			
-			if target then
-				triggerbotCooldown = true
-				
-				wait(triggerbotDelay / 1000)
-				
-				if getMouseTarget() == target then
-					mouse1press()
-					wait(triggerbotHold / 1000)
-					mouse1release()
-				end
-				
-				wait(0.1)
-				triggerbotCooldown = false
-			end
+		-- Delay before shooting
+		task.wait(triggerbotDelay / 1000)
+		
+		-- Verify target is still valid
+		local currentTarget = getMouseTarget()
+		if currentTarget == target then
+			-- Fire! (Mobile + PC Compatible)
+			fireWeapon()
 		end
+		
+		-- Cooldown
+		task.wait(0.05)
+		triggerbotCooldown = false
 	end
 end)
 
@@ -1331,13 +1418,14 @@ RunService.RenderStepped:Connect(function()
 end)
 
 print("========================================")
-print("Enhanced Aim Assist [ULTIMATE + TRIGGERBOT]")
+print("Enhanced Aim Assist [MOBILE + PC EDITION]")
 print("========================================")
 print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
 print("✅ Advanced Aim (IMPROVED Accuracy)")
 print("✅ ESP (6 MONITORING SYSTEMS)")
 print("✅ Wall Detection (5-Point Raycast)")
-print("✅ Universal Triggerbot (Adjustable)")
+print("✅ Universal Triggerbot (MOBILE COMPATIBLE!)")
 print("💡 2 [+] buttons for settings")
-print("🎯 Everything working perfectly!")
+print("📱 Works on MOBILE & PC!")
+print("🎯 Triggerbot: VirtualInput + Tool + Mouse1")
 print("========================================")
