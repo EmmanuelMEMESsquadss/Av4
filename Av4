@@ -1237,67 +1237,53 @@ espBtn.Activated:Connect(function()
 	end
 end)
 
--- UNIVERSAL TRIGGERBOT SYSTEM (Mobile + PC Compatible)
-local VirtualInputManager = game:GetService("VirtualInputManager")
+-- MOBILE TRIGGERBOT SYSTEM (Crosshair-Only Detection - Zero Touch Interference!)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local function fireWeapon()
-	-- METHOD 1: VirtualInputManager (Mobile Compatible!)
-	pcall(function()
-		VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-		task.wait(triggerbotHold / 1000)
-		VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-	end)
-	
-	-- METHOD 2: Tool Activation (Universal Backup)
-	pcall(function()
+	-- METHOD 1: Tool Activation (Cleanest - No Touch Involved!)
+	local success = pcall(function()
 		local tool = character and character:FindFirstChildOfClass("Tool")
 		if tool then
 			tool:Activate()
-			task.wait(triggerbotHold / 1000)
-			tool:Deactivate()
+			return true
 		end
 	end)
 	
-	-- METHOD 3: Mouse1 for PC (Fallback)
+	if success then return end
+	
+	-- METHOD 2: RemoteEvent Detection (Game-Specific Shooting)
 	pcall(function()
-		if mouse1press and mouse1release then
-			mouse1press()
-			task.wait(triggerbotHold / 1000)
-			mouse1release()
-		end
-	end)
-end
-
-local function getMouseTarget()
-	if not hrp then return nil end
-	
-	-- METHOD 1: Mouse.Target (Most Common)
-	local mouse = player:GetMouse()
-	if mouse and mouse.Target then
-		local target = mouse.Target
-		local targetModel = target:FindFirstAncestorOfClass("Model")
-		
-		if targetModel then
-			local targetPlayer = Players:GetPlayerFromCharacter(targetModel)
-			if targetPlayer and targetPlayer ~= player then
-				if teamCheckEnabled and isTeammate(targetPlayer) then return nil end
-				
-				local targetHum = targetModel:FindFirstChildWhichIsA("Humanoid")
-				if targetHum and targetHum.Health > 0 then
-					local targetHRP = targetModel:FindFirstChild("HumanoidRootPart")
-					if targetHRP then
-						local distance = (targetHRP.Position - hrp.Position).Magnitude
-						if distance <= maxDistance then
-							return targetModel
-						end
-					end
+		for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
+			if remote:IsA("RemoteEvent") then
+				local name = remote.Name:lower()
+				if name:find("shoot") or name:find("fire") or name:find("gun") or name:find("weapon") then
+					remote:FireServer()
+					return
 				end
 			end
 		end
-	end
+	end)
 	
-	-- METHOD 2: Camera Raycast (More Reliable)
+	-- METHOD 3: Mouse1 for PC ONLY (Never runs on mobile!)
+	if not UserInputService.TouchEnabled then
+		pcall(function()
+			if mouse1press and mouse1release then
+				mouse1press()
+				task.wait(triggerbotHold / 1000)
+				mouse1release()
+			end
+		end)
+	end
+end
+
+local function getCrosshairTarget()
+	if not hrp or not camera then return nil end
+	
+	-- Get EXACT screen center (where crosshair is)
 	local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+	
+	-- Raycast from camera through crosshair
 	local unitRay = camera:ViewportPointToRay(screenCenter.X, screenCenter.Y)
 	
 	local raycastParams = RaycastParams.new()
@@ -1305,77 +1291,80 @@ local function getMouseTarget()
 	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 	raycastParams.IgnoreWater = true
 	
+	-- Cast ray up to max distance
 	local rayResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * maxDistance, raycastParams)
 	
-	if rayResult and rayResult.Instance then
-		local targetModel = rayResult.Instance:FindFirstAncestorOfClass("Model")
-		
-		if targetModel then
-			local targetPlayer = Players:GetPlayerFromCharacter(targetModel)
-			if targetPlayer and targetPlayer ~= player then
-				if teamCheckEnabled and isTeammate(targetPlayer) then return nil end
-				
-				local targetHum = targetModel:FindFirstChildWhichIsA("Humanoid")
-				if targetHum and targetHum.Health > 0 then
-					return targetModel
-				end
-			end
-		end
+	if not rayResult or not rayResult.Instance then return nil end
+	
+	-- Check if we hit a player character
+	local hitModel = rayResult.Instance:FindFirstAncestorOfClass("Model")
+	if not hitModel then return nil end
+	
+	local targetPlayer = Players:GetPlayerFromCharacter(hitModel)
+	if not targetPlayer or targetPlayer == player then return nil end
+	
+	-- Team check
+	if teamCheckEnabled and isTeammate(targetPlayer) then return nil end
+	
+	-- Health check
+	local targetHum = hitModel:FindFirstChildWhichIsA("Humanoid")
+	if not targetHum or targetHum.Health <= 0 then return nil end
+	
+	-- Distance check
+	local targetHRP = hitModel:FindFirstChild("HumanoidRootPart")
+	if targetHRP then
+		local distance = (targetHRP.Position - hrp.Position).Magnitude
+		if distance > maxDistance then return nil end
 	end
 	
-	-- METHOD 3: Screen Center FOV Check (Backup)
-	for _, targetPlayer in ipairs(Players:GetPlayers()) do
-		if targetPlayer ~= player and targetPlayer.Character then
-			if teamCheckEnabled and isTeammate(targetPlayer) then continue end
-			
-			local targetChar = targetPlayer.Character
-			local targetHum = targetChar:FindFirstChildWhichIsA("Humanoid")
-			local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-			
-			if targetHum and targetHum.Health > 0 and targetHRP then
-				local distance = (targetHRP.Position - hrp.Position).Magnitude
-				if distance <= maxDistance then
-					local screenPos, onScreen = camera:WorldToViewportPoint(targetHRP.Position)
-					if onScreen then
-						local distanceFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-						if distanceFromCenter < 50 then
-							return targetChar
-						end
-					end
-				end
-			end
-		end
-	end
-	
-	return nil
+	return hitModel
 end
 
 local triggerbotCooldown = false
-local lastTarget = nil
+local lastShotTime = 0
 
--- Triggerbot Loop (Mobile + PC Compatible)
-RunService.RenderStepped:Connect(function()
-	if not triggerbotEnabled or triggerbotCooldown then return end
-	
-	local target = getMouseTarget()
-	
-	if target then
-		triggerbotCooldown = true
-		lastTarget = target
+-- Triggerbot Loop (ONLY SHOOTS WHEN CROSSHAIR IS ON TARGET!)
+spawn(function()
+	while true do
+		task.wait(0.02) -- 50 checks per second
 		
-		-- Delay before shooting
-		task.wait(triggerbotDelay / 1000)
-		
-		-- Verify target is still valid
-		local currentTarget = getMouseTarget()
-		if currentTarget == target then
-			-- Fire! (Mobile + PC Compatible)
-			fireWeapon()
+		if triggerbotEnabled and not triggerbotCooldown then
+			local currentTime = tick()
+			
+			-- Respect cooldown
+			if currentTime - lastShotTime < 0.15 then
+				continue
+			end
+			
+			-- Check if crosshair is on valid target
+			local target = getCrosshairTarget()
+			
+			if target then
+				triggerbotCooldown = true
+				
+				-- Delay before shooting
+				if triggerbotDelay > 0 then
+					task.wait(triggerbotDelay / 1000)
+				end
+				
+				-- Verify target is still on crosshair after delay
+				local stillOnTarget = getCrosshairTarget()
+				if stillOnTarget == target then
+					-- FIRE! (No touch involved)
+					lastShotTime = tick()
+					fireWeapon()
+					
+					-- Hold time
+					if triggerbotHold > 0 then
+						task.wait(triggerbotHold / 1000)
+					end
+				end
+				
+				-- Brief cooldown before next shot
+				task.wait(0.1)
+				triggerbotCooldown = false
+			end
 		end
-		
-		-- Cooldown
-		task.wait(0.05)
-		triggerbotCooldown = false
 	end
 end)
 
@@ -1418,14 +1407,14 @@ RunService.RenderStepped:Connect(function()
 end)
 
 print("========================================")
-print("Enhanced Aim Assist [MOBILE + PC EDITION]")
+print("Enhanced Aim Assist [CROSSHAIR TRIGGERBOT]")
 print("========================================")
 print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
 print("✅ Advanced Aim (IMPROVED Accuracy)")
 print("✅ ESP (6 MONITORING SYSTEMS)")
 print("✅ Wall Detection (5-Point Raycast)")
-print("✅ Universal Triggerbot (MOBILE COMPATIBLE!)")
+print("✅ Triggerbot (CROSSHAIR ONLY - NO TOUCH!)")
 print("💡 2 [+] buttons for settings")
-print("📱 Works on MOBILE & PC!")
-print("🎯 Triggerbot: VirtualInput + Tool + Mouse1")
+print("📱 ZERO touch interference - Uses Tool/Remote only!")
+print("🎯 Shoots ONLY when crosshair aims at enemy!")
 print("========================================")
